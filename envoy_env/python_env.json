@@ -1,0 +1,14 @@
+{
+    "+=PYTHONPATH": "${__BUNDLE__}/py",
+    "environment_allowlist": [
+        "VALIDATOR_UNREAL_CMD",
+        "VALIDATOR_UNREAL_PROJECT",
+        "VALIDATOR_FORMAT",
+        "VALIDATOR_OUTPUT_DIR",
+        "VALIDATOR_CATEGORY",
+        "VALIDATOR_SEVERITY",
+        "VALIDATOR_DEBUG",
+        "VALIDATOR_DRY_RUN",
+        "VALIDATOR_CONFIG_PATH"
+    ]
+}

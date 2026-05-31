@@ -1,0 +1,10 @@
+{
+    "validate": {
+        "description": "Runs the validation framework on the specified rules and inputs.",
+        "environment": [
+            "python_env.json",
+            "validation_env.json"
+        ],
+        "alias": ["python", "-m", "gt.validator.cli"]
+    }
+}

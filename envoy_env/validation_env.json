@@ -1,0 +1,4 @@
+{
+    "VALIDATOR_UNREAL_CMD": "C:/UnrealEngine/UE_5.5/Engine/Binaries/Win64/UnrealEditor-Cmd.exe",
+    "VALIDATOR_OUTPUT_DIR": "${USERPROFILE}/validation"
+}

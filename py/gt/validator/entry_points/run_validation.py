@@ -1,0 +1,249 @@
+"""Reusable entry-point helpers for running the validator from Unreal Editor.
+
+Provides thin public functions that context-menu scripts and other callers can
+invoke in a single line, keeping those scripts free of boilerplate.
+
+Public API
+----------
+runOnSelectedAssets()
+    Validate the assets currently selected in the Content Browser.
+
+runOnSelectedFolders()
+    Validate all assets in the folder(s) selected in the Content Browser
+    path view (``ContentBrowser.FolderContextMenu``).
+
+runOnPath(content_path)
+    Validate all assets under an explicit content-browser path.
+
+"""
+from __future__ import annotations
+
+from pathlib import Path
+
+import unreal
+
+from ..config import Config
+from ..errors import UnrealAPIError
+from ..reporting import HTMLFormatter, JSONFormatter
+from ..reporting.models import ValidationReport
+from ..runner import ValidationRunner
+
+
+# ── Logging ───────────────────────────────────────────────────────────────── #
+
+def _log(message: str) -> None:
+    """Print a message to the Unreal Output Log."""
+    unreal.log(message)
+
+
+def _logWarning(message: str) -> None:
+    """Print a warning to the Unreal Output Log."""
+    unreal.log_warning(message)
+
+
+def _logError(message: str) -> None:
+    """Print an error to the Unreal Output Log."""
+    unreal.log_error(message)
+
+
+# ── Internal helpers ──────────────────────────────────────────────────────── #
+
+def _canShowSlowTaskDialog() -> bool:
+    """Return True for editor entry-point flows that support slow-task dialogs."""
+    return not unreal.SystemLibrary.is_unattended()
+
+
+def _makeRunner() -> ValidationRunner:
+    """Create a serial ValidationRunner configured for Unreal Editor."""
+    config = Config()
+    runner = ValidationRunner(config, max_workers=1)
+    if not runner.rules:
+        _logWarning("[Validator] No rules matched. Check your validator/rules/ folder.")
+    else:
+        _log(f"[Validator] Rules active: {[type(r).__name__ for r in runner.rules]}")
+    return runner
+
+
+def _outputReport(
+    report: ValidationReport,
+    cancelled: bool = False,
+    total_assets: int | None = None,
+) -> None:
+    """Log failures, print the summary line, and write JSON + HTML artifacts."""
+    for result in report.failures():
+        _logError(str(result))
+
+    _log(report.summaryLine())
+
+    if cancelled:
+        if total_assets is None:
+            _logWarning("[Validator] Validation cancelled by user. Partial report generated.")
+        else:
+            _logWarning(
+                "[Validator] Validation cancelled by user. "
+                f"Partial report generated ({report.asset_count}/{total_assets} "
+                "assets processed)."
+            )
+    elif report.hasErrors():
+        _logError(
+            f"[Validator] {report.failed} failure(s) found. "
+            "See Output Log for details."
+        )
+    else:
+        _log("[Validator] Validation complete — no errors found.")
+
+    home = Path.home()
+    json_report = home / "validation" / "report.json"
+    json_report.parent.mkdir(parents=True, exist_ok=True)
+    json_report.write_text(JSONFormatter().format(report))
+
+    html_report = home / "validation" / "report.html"
+    html_report.write_text(HTMLFormatter().format(report))
+
+
+# ── Public API ────────────────────────────────────────────────────────────── #
+
+def runOnSelectedAssets() -> None:
+    """Validate the assets currently selected in the Content Browser.
+
+    Reads the current Content Browser asset selection via
+    ``EditorUtilityLibrary.get_selected_assets()``.
+
+    Raises:
+        UnrealAPIError: If the Unreal Python bridge raises during validation.
+
+    """
+    selections = unreal.EditorUtilityLibrary.get_selected_assets()
+    if not selections:
+        _logWarning("[Validator] No assets selected.")
+        return
+    paths = [s.get_path_name() for s in selections]
+    _log(f"[Validator] Validating {len(paths)} selected asset(s)...")
+    try:
+        report = _makeRunner().validateAssets(paths)
+    except UnrealAPIError as exc:
+        _logError(f"[Validator] Unreal API error: {exc}")
+        raise
+    _outputReport(report)
+
+
+def runOnSelectedFolders() -> None:
+    """Validate all assets in the folder(s) selected in the path view.
+
+    Reads the current Content Browser folder selection via
+    ``EditorUtilityLibrary.get_selected_path_view_folder_paths()``.
+    Assets in multiple selected folders are deduplicated before validation.
+
+    Raises:
+        UnrealAPIError: If the Unreal Python bridge raises during validation.
+
+    """
+    folders = list(unreal.EditorUtilityLibrary.get_selected_path_view_folder_paths())
+    if not folders:
+        _logWarning("[Validator] No folders selected.")
+        return
+    _log(f"[Validator] Validating {len(folders)} selected folder(s)...")
+
+    runner = _makeRunner()
+    seen: set[str] = set()
+    normalized_folders: list[str] = []
+    for folder in folders:
+        # get_selected_path_view_folder_paths() returns /All/Game/... paths.
+        # list_assets expects /Game/... — strip the /All prefix if present.
+        folder_path = folder[4:] if folder.startswith('/All') else folder
+        # list_assets requires a trailing slash
+        if not folder_path.endswith('/'):
+            folder_path = folder_path + '/'
+        normalized_folders.append(folder_path)
+        folder_assets = list(runner._iterAssets(folder_path))
+        _log(f"[Validator] {folder_path} — {len(folder_assets)} asset(s) found")
+        for ap in folder_assets:
+            seen.add(ap)
+
+    total_assets = len(seen)
+    if total_assets <= 0:
+        _logWarning("[Validator] No assets found in the selected folder(s).")
+        return
+
+    report = None
+    try:
+        with unreal.ScopedSlowTask(
+            total_assets,
+            f"Validating {total_assets} asset(s)...",
+        ) as slow_task:
+            if _canShowSlowTaskDialog():
+                slow_task.make_dialog(can_cancel=True)
+
+            def _advanceProgress(asset_path: str) -> None:
+                try:
+                    slow_task.enter_progress_frame(1.0, asset_path)
+                except TypeError:
+                    slow_task.enter_progress_frame(1.0)
+
+            report = runner.runAndReportFolders(
+                normalized_folders,
+                slow_task=slow_task,
+                should_cancel=slow_task.should_cancel,
+                advance_progress=_advanceProgress,
+            )
+    except UnrealAPIError as exc:
+        _logError(f"[Validator] Unreal API error: {exc}")
+        raise
+    
+    if report:
+        _outputReport(
+            report,
+            cancelled=getattr(runner, "last_run_cancelled", False),
+            total_assets=total_assets,
+        )
+
+
+def runOnPath(content_path: str = "/Game/") -> None:
+    """Validate all assets under an explicit content-browser path.
+
+    Args:
+        content_path: Unreal content-browser path to validate, e.g.
+            ``"/Game/"`` or ``"/Game/Characters/"``.
+
+    Raises:
+        UnrealAPIError: If the Unreal Python bridge raises during validation.
+        ValueError: If ``content_path`` cannot be resolved.
+
+    """
+    _log(f"[Validator] Validating content path: {content_path}")
+    runner = _makeRunner()
+    report = None
+    try:
+        total_assets = len(list(runner._iterAssets(content_path)))
+        if total_assets <= 0:
+            report = runner.runAndReport(content_path)
+        else:
+            with unreal.ScopedSlowTask(
+                total_assets,
+                f"Validating {total_assets} asset(s)...",
+            ) as slow_task:
+                if _canShowSlowTaskDialog():
+                    slow_task.make_dialog(can_cancel=True)
+
+                def _advanceProgress(asset_path: str) -> None:
+                    try:
+                        slow_task.enter_progress_frame(1.0, asset_path)
+                    except TypeError:
+                        slow_task.enter_progress_frame(1.0)
+
+                report = runner.runAndReport(
+                    content_path,
+                    slow_task=slow_task,
+                    should_cancel=slow_task.should_cancel,
+                    advance_progress=_advanceProgress,
+                )
+    except (UnrealAPIError, ValueError) as exc:
+        _logError(f"[Validator] Error during validation: {exc}")
+        raise
+
+    if report:
+        _outputReport(
+            report,
+            cancelled=getattr(runner, "last_run_cancelled", False),
+            total_assets=total_assets if total_assets > 0 else None,
+        )
