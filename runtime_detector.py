@@ -5,7 +5,7 @@ the code is running in (e.g., standalone, Unreal, 3ds Max, Maya, etc.).
 """
 
 from enum import Enum
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,14 +34,19 @@ class RuntimeDetector:
     _detected_host: Optional[HostType] = None
     
     @classmethod
-    def register(cls, host_type: HostType, detection_func: Callable[[], bool]) -> None:
-        """Register a detection function for a specific host type.
+    def register(cls, host_type: HostType) -> Callable[[Callable[[], bool]], Callable[[], bool]]:
+        """Decorator to register a detection function for a specific host type.
         
         Args:
             host_type: The host type to register detection for
-            detection_func: Function that returns True if the host is detected
+            
+        Returns:
+            A decorator that registers the decorated function
         """
-        cls._registry[host_type] = detection_func
+        def decorator(detection_func: Callable[[], bool]) -> Callable[[], bool]:
+            cls._registry[host_type] = detection_func
+            return detection_func
+        return decorator
     
     @classmethod
     def detect(cls) -> HostType:
@@ -93,7 +98,8 @@ class RuntimeDetector:
         return cls.get_current_host() == host_type
 
 
-# Register default detection functions
+# Register default detection functions using decorators
+@RuntimeDetector.register(HostType.UNREAL)
 def _detect_unreal() -> bool:
     """Detect if running inside Unreal Engine."""
     try:
@@ -105,6 +111,7 @@ def _detect_unreal() -> bool:
         return False
 
 
+@RuntimeDetector.register(HostType.MAYA)
 def _detect_maya() -> bool:
     """Detect if running inside Autodesk Maya."""
     try:
@@ -115,15 +122,18 @@ def _detect_maya() -> bool:
         return False
 
 
+@RuntimeDetector.register(HostType.MAX)
 def _detect_max() -> bool:
     """Detect if running inside Autodesk 3ds Max."""
     try:
         import pymxs  # noqa: F401
+        import pymxs.runtime  # noqa: F401
         return True
     except ImportError:
         return False
 
 
+@RuntimeDetector.register(HostType.HOUDINI)
 def _detect_houdini() -> bool:
     """Detect if running inside SideFX Houdini."""
     try:
@@ -133,6 +143,7 @@ def _detect_houdini() -> bool:
         return False
 
 
+@RuntimeDetector.register(HostType.BLENDER)
 def _detect_blender() -> bool:
     """Detect if running inside Blender."""
     try:
@@ -142,6 +153,7 @@ def _detect_blender() -> bool:
         return False
 
 
+@RuntimeDetector.register(HostType.KRITA)
 def _detect_krita() -> bool:
     """Detect if running inside Krita."""
     try:
@@ -149,15 +161,6 @@ def _detect_krita() -> bool:
         return True
     except ImportError:
         return False
-
-
-# Register all detection functions
-RuntimeDetector.register(HostType.UNREAL, _detect_unreal)
-RuntimeDetector.register(HostType.MAYA, _detect_maya)
-RuntimeDetector.register(HostType.MAX, _detect_max)
-RuntimeDetector.register(HostType.HOUDINI, _detect_houdini)
-RuntimeDetector.register(HostType.BLENDER, _detect_blender)
-RuntimeDetector.register(HostType.KRITA, _detect_krita)
 
 
 # Convenience functions for common checks
