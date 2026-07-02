@@ -56,24 +56,38 @@ class ValidationRunner:
         
         """
         self.config    = config
+        self.category   = category
+        self.severity   = severity
+        self.rules     = rules
         self.context   = context
         self.allowlist = allowlist
-        self.max_workers = max_workers or int(
-            os.environ.get("VALIDATOR_MAX_WORKERS", os.cpu_count() or 4)
-        )
+        
+        # Set default max_workers if not provided
+        if max_workers is None:
+            max_workers = int(os.environ.get("VALIDATOR_MAX_WORKERS", "0"))
+            if max_workers == 0:
+                max_workers = os.cpu_count() or 4
+                
+        self.max_workers = max_workers
 
-        if rules is not None:
-            self.rules = [R(config) for R in rules]
-        else:
-            registry.discover()
-            rule_classes = registry.getRules(category=category, severity=severity)
-            if not rule_classes:
-                logger.warning(
-                    "[ValidationRunner] No rules matched "
-                    "(category=%r, severity=%r). Registered: %s",
-                    category, severity, list(registry.listRules().keys()),
-                )
-            self.rules = [R(config) for R in rule_classes]
+        # Discover and instantiate rules
+        try:
+            if rules is not None:
+                self.rules = [R(config) for R in rules]
+            else:
+                registry.discover()
+                rule_classes = registry.getRules(category=category, severity=severity)
+                if not rule_classes:
+                    logger.warning(
+                        "[ValidationRunner] No rules matched "
+                        "(category=%r, severity=%r). Registered: %s",
+                        category, severity, list(registry.listRules().keys()),
+                    )
+                self.rules = [R(config) for R in rule_classes]
+        except Exception as e:
+            logger.error(f"[ValidationRunner] Failed to initialize rules: {e}")
+            raise
+
         self.last_run_cancelled = False
 
     def validateAsset(self, asset_path: str) -> list[ValidationResult]:
@@ -87,6 +101,12 @@ class ValidationRunner:
         
         """
         results: list[ValidationResult] = []
+        
+        # Check if asset is allowlisted
+        if self.allowlist and self.allowlist.isAllowed(self.category or "", asset_path):
+            logger.debug(f"[ValidationRunner] Asset {asset_path} is allowlisted")
+            return [self._makeSkippedResult(asset_path, "Asset is allowlisted")]
+            
         for rule in self.rules:
             t0 = time.perf_counter()
             try:
@@ -145,6 +165,19 @@ class ValidationRunner:
             fix_hint="Inspect rule implementation and runner logs for traceback details.",
         )
 
+    def _makeSkippedResult(self, asset_path: str, reason: str) -> ValidationResult:
+        """Create a skipped result for an asset."""
+        return ValidationResult(
+            asset_path=asset_path,
+            rule_name="",
+            category="",
+            severity=Severity.INFO,
+            message=f"Asset skipped: {reason}",
+            passed=True,
+            skipped=True,
+            duration_ms=0.0,
+        )
+
     def validateAssets(self, asset_paths: list[str]) -> ValidationReport:
         """Validate an explicit list of asset paths and return an aggregated report.
 
@@ -161,8 +194,34 @@ class ValidationRunner:
         from . import __version__
         t0 = time.perf_counter()
         all_results: list[ValidationResult] = []
-        for asset_path in asset_paths:
-            all_results.extend(self.validateAsset(asset_path))
+        
+        # Process assets in parallel if max_workers > 1
+        if self.max_workers > 1:
+            try:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=self.max_workers,
+                    thread_name_prefix="validator",
+                ) as executor:
+                    futures = {
+                        executor.submit(self.validateAsset, path): path
+                        for path in asset_paths
+                    }
+                    for future in concurrent.futures.as_completed(futures):
+                        try:
+                            all_results.extend(future.result())
+                        except Exception as exc:  # noqa: BLE001 - thread boundary
+                            asset_path = futures[future]
+                            logger.error("[Runner] Error validating '%s': %s", asset_path, exc)
+            except Exception as e:
+                logger.error(f"[Runner] Failed to process assets in parallel: {e}")
+                # Fall back to sequential processing
+                for asset_path in asset_paths:
+                    all_results.extend(self.validateAsset(asset_path))
+        else:
+            # Sequential processing
+            for asset_path in asset_paths:
+                all_results.extend(self.validateAsset(asset_path))
+                
         duration = (time.perf_counter() - t0) * 1000
         return ValidationReport(
             results=all_results,
@@ -202,11 +261,17 @@ class ValidationRunner:
         t0 = time.perf_counter()
         seen: set[str] = set()
         assets: list[str] = []
+        
+        # Collect unique assets from folders
         for folder in folders:
-            for asset_path in self._iterAssets(folder):
-                if asset_path not in seen:
-                    seen.add(asset_path)
-                    assets.append(asset_path)
+            try:
+                for asset_path in self._iterAssets(folder):
+                    if asset_path not in seen:
+                        seen.add(asset_path)
+                        assets.append(asset_path)
+            except Exception as e:
+                logger.error(f"[Runner] Failed to collect assets from {folder}: {e}")
+                
         self.last_run_cancelled = False
         hooks_enabled = (
             slow_task is not None
@@ -238,9 +303,11 @@ class ValidationRunner:
             except TypeError:
                 progress_method(1.0)
 
+        # Process assets
+        all_results: list[ValidationResult] = []
+        processed_assets = 0
+        
         if self.max_workers == 1 or hooks_enabled:
-            all_results: list[ValidationResult] = []
-            processed_assets = 0
             for asset_path in assets:
                 if _is_cancelled():
                     self.last_run_cancelled = True
@@ -249,22 +316,32 @@ class ValidationRunner:
                 processed_assets += 1
                 _advance_progress(asset_path)
         else:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.max_workers,
-                thread_name_prefix="validator",
-            ) as executor:
-                futures = {
-                    executor.submit(self.validateAsset, path): path
-                    for path in assets
-                }
-                all_results = []
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        all_results.extend(future.result())
-                    except Exception as exc:  # noqa: BLE001 - thread boundary
-                        asset_path = futures[future]
-                        logger.error("[Runner] Error validating '%s': %s", asset_path, exc)
-            processed_assets = len(assets)
+            try:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=self.max_workers,
+                    thread_name_prefix="validator",
+                ) as executor:
+                    futures = {
+                        executor.submit(self.validateAsset, path): path
+                        for path in assets
+                    }
+                    for future in concurrent.futures.as_completed(futures):
+                        try:
+                            all_results.extend(future.result())
+                        except Exception as exc:  # noqa: BLE001 - thread boundary
+                            asset_path = futures[future]
+                            logger.error("[Runner] Error validating '%s': %s", asset_path, exc)
+                processed_assets = len(assets)
+            except Exception as e:
+                logger.error(f"[Runner] Failed to process assets in parallel: {e}")
+                # Fall back to sequential processing
+                for asset_path in assets:
+                    if _is_cancelled():
+                        self.last_run_cancelled = True
+                        break
+                    all_results.extend(self.validateAsset(asset_path))
+                    processed_assets += 1
+                    _advance_progress(asset_path)
 
         if self.last_run_cancelled:
             logger.warning(
@@ -316,7 +393,14 @@ class ValidationRunner:
         """
         from . import __version__
         t0 = time.perf_counter()
-        assets = list(self._iterAssets(directory))
+        
+        # Collect assets from directory
+        try:
+            assets = list(self._iterAssets(directory))
+        except Exception as e:
+            logger.error(f"[Runner] Failed to collect assets from {directory}: {e}")
+            raise
+            
         self.last_run_cancelled = False
         hooks_enabled = (
             slow_task is not None
@@ -348,9 +432,11 @@ class ValidationRunner:
             except TypeError:
                 progress_method(1.0)
 
+        # Process assets
+        all_results: list[ValidationResult] = []
+        processed_assets = 0
+        
         if self.max_workers == 1 or hooks_enabled:
-            all_results: list[ValidationResult] = []
-            processed_assets = 0
             for asset_path in assets:
                 if _is_cancelled():
                     self.last_run_cancelled = True
@@ -359,22 +445,32 @@ class ValidationRunner:
                 processed_assets += 1
                 _advance_progress(asset_path)
         else:
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.max_workers,
-                thread_name_prefix="validator",
-            ) as executor:
-                futures = {
-                    executor.submit(self.validateAsset, path): path
-                    for path in assets
-                }
-                all_results = []
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        all_results.extend(future.result())
-                    except Exception as exc:  # noqa: BLE001 - thread boundary
-                        asset_path = futures[future]
-                        logger.error("[Runner] Error validating '%s': %s", asset_path, exc)
-            processed_assets = len(assets)
+            try:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=self.max_workers,
+                    thread_name_prefix="validator",
+                ) as executor:
+                    futures = {
+                        executor.submit(self.validateAsset, path): path
+                        for path in assets
+                    }
+                    for future in concurrent.futures.as_completed(futures):
+                        try:
+                            all_results.extend(future.result())
+                        except Exception as exc:  # noqa: BLE001 - thread boundary
+                            asset_path = futures[future]
+                            logger.error("[Runner] Error validating '%s': %s", asset_path, exc)
+                processed_assets = len(assets)
+            except Exception as e:
+                logger.error(f"[Runner] Failed to process assets in parallel: {e}")
+                # Fall back to sequential processing
+                for asset_path in assets:
+                    if _is_cancelled():
+                        self.last_run_cancelled = True
+                        break
+                    all_results.extend(self.validateAsset(asset_path))
+                    processed_assets += 1
+                    _advance_progress(asset_path)
 
         if self.last_run_cancelled:
             logger.warning(

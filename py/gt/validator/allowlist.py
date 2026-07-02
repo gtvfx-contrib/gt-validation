@@ -41,11 +41,14 @@ class AllowlistEntry:
         asset: Content-browser or filesystem path of the exempted asset.
         reason: Human-readable justification for the exception.
         author: Username or identifier of the approver.
+        created_at: Timestamp when the entry was added.
+        expires_at: Optional timestamp when the entry expires.
     
     """
 
     def __init__(self, rule: str, asset: str, reason: str = "",
-                 author: str = "", expires: str | None = None) -> None:
+                 author: str = "", created_at: str | None = None,
+                 expires_at: str | None = None) -> None:
         """Initialise an allowlist entry.
 
         Args:
@@ -53,35 +56,38 @@ class AllowlistEntry:
             asset: Content-browser or filesystem path of the exempted asset.
             reason: Human-readable justification for the exception.
             author: Username or identifier of the approver.
-            expires: Optional expiry date string in ``YYYY-MM-DD`` format.
+            created_at: Timestamp when the entry was added.
+            expires_at: Optional expiry date string in ``YYYY-MM-DD`` format.
                 Entries past this date are treated as expired.
         
         """
-        self.rule   = rule
-        self.asset  = asset
+        self.rule = rule
+        self.asset = asset
         self.reason = reason
         self.author = author
-        self._expires_str = expires
-        self._expires: date | None = None
-        if expires:
-            try:
-                self._expires = datetime.strptime(expires, "%Y-%m-%d").date()
-            except ValueError:
-                logger.warning(
-                    "[Allowlist] Invalid expiry date '%s' for rule=%s asset=%s — ignoring.",
-                    expires, rule, asset,
-                )
+        self.created_at = created_at or datetime.now().isoformat()
+        self.expires_at = expires_at
 
     def isExpired(self) -> bool:
         """Return True if this entry has passed its expiry date."""
-        if self._expires is None:
+        if not self.expires_at:
             return False
-        return date.today() > self._expires
+            
+        try:
+            expire_date = datetime.fromisoformat(self.expires_at)
+            return datetime.now() > expire_date
+        except ValueError:
+            # Invalid date format, treat as expired
+            logger.warning(
+                "[Allowlist] Invalid expiry date '%s' for rule=%s asset=%s — treating as expired.",
+                self.expires_at, self.rule, self.asset,
+            )
+            return True
 
     def __repr__(self) -> str:
         return (
             f"AllowlistEntry(rule={self.rule!r}, asset={self.asset!r}, "
-            f"expires={self._expires_str!r})"
+            f"expires={self.expires_at!r})"
         )
 
 
@@ -109,28 +115,36 @@ class AllowlistManager:
                 The ``allowlist`` key must contain a list of entry dicts.
         
         """
+        self.entries: list[AllowlistEntry] = []
+        self.config = config
+        
+        # Load allowlist from config
         raw_entries: list[dict] = config.get("allowlist", [])
-        self._entries: list[AllowlistEntry] = []
         for raw in raw_entries:
             if not isinstance(raw, dict):
                 logger.warning("[Allowlist] Skipping invalid entry (not a dict): %r", raw)
                 continue
-            entry = AllowlistEntry(
-                rule    = raw.get("rule", ""),
-                asset   = raw.get("asset", ""),
-                reason  = raw.get("reason", ""),
-                author  = raw.get("author", ""),
-                expires = raw.get("expires"),
-            )
-            if entry.isExpired():
-                logger.warning(
-                    "[Allowlist] Expired entry skipped: rule=%s asset=%s expired=%s",
-                    entry.rule, entry.asset, entry._expires_str,
+            try:
+                entry = AllowlistEntry(
+                    rule    = raw.get("rule", ""),
+                    asset   = raw.get("asset", ""),
+                    reason  = raw.get("reason", ""),
+                    author  = raw.get("author", ""),
+                    created_at = raw.get("created_at"),
+                    expires_at = raw.get("expires"),
                 )
-            else:
-                self._entries.append(entry)
+                if entry.isExpired():
+                    logger.warning(
+                        "[Allowlist] Expired entry skipped: rule=%s asset=%s expired=%s",
+                        entry.rule, entry.asset, entry.expires_at,
+                    )
+                else:
+                    self.entries.append(entry)
+            except Exception as e:
+                logger.warning("[Allowlist] Failed to load entry: %s", e)
+                continue
 
-        logger.debug("[Allowlist] Loaded %d active entries.", len(self._entries))
+        logger.debug("[Allowlist] Loaded %d active entries.", len(self.entries))
 
     def isAllowed(self, rule_name: str, asset_path: str) -> bool:
         """Return ``True`` if the combination matches an active allowlist entry.
@@ -146,9 +160,9 @@ class AllowlistManager:
             otherwise.
         
         """
-        for entry in self._entries:
+        for entry in self.entries:
             if entry.rule == rule_name and entry.asset == asset_path:
-                return True
+                return not entry.isExpired()
         return False
 
     def getEntry(self, rule_name: str, asset_path: str) -> AllowlistEntry | None:
@@ -162,13 +176,13 @@ class AllowlistManager:
             The matching entry, or ``None`` if no active entry is found.
         
         """
-        for entry in self._entries:
+        for entry in self.entries:
             if entry.rule == rule_name and entry.asset == asset_path:
-                return entry
+                return entry if not entry.isExpired() else None
         return None
 
     def __len__(self) -> int:
-        return len(self._entries)
+        return len(self.entries)
 
     def __repr__(self) -> str:
-        return f"AllowlistManager(entries={len(self._entries)})"
+        return f"AllowlistManager(entries={len(self.entries)})"

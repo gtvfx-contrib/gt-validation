@@ -149,6 +149,7 @@ class AbstractRule(ABC):
             message=message,
             passed=passed,
             skipped=False,
+            timestamp=datetime.now().isoformat(),
             duration_ms=duration_ms,
             asset_class=asset_class,
             fix_hint=fix_hint,
@@ -173,4 +174,5 @@ class AbstractRule(ABC):
             message=reason,
             passed=True,
             skipped=True,
+            timestamp=datetime.now().isoformat(),
         )

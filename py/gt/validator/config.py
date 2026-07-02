@@ -63,6 +63,8 @@ DEFAULTS: dict[str, Any] = {
     "filter_severity": None,
     "filter_category": None,
     "show_passing": False,
+    "max_workers": 0,  # 0 means use CPU count
+    "output_format": "console",
 }
 
 
@@ -92,6 +94,8 @@ CONFIG_SCHEMA: dict[str, type | tuple] = {
     "filter_severity": (str, type(None)),
     "filter_category": (str, type(None)),
     "show_passing": bool,
+    "max_workers": int,
+    "output_format": str,
 }
 
 
@@ -121,14 +125,21 @@ class Config:
         self._data: dict[str, Any] = dict(DEFAULTS)
 
         if config_path:
-            json_data = self._loadJson(config_path)
-            self._data.update(json_data)
+            try:
+                json_data = self._loadJson(config_path)
+                self._data.update(json_data)
+            except Exception as e:
+                logger.warning(f"Failed to load config from {config_path}: {e}")
 
         env_data = self._loadEnv()
         self._data.update(env_data)
 
         if validate:
-            self._validateSchema()
+            try:
+                self._validateSchema()
+            except Exception as e:
+                logger.error(f"Configuration validation failed: {e}")
+                raise
 
         logger.debug("[Config] Initialized with %d keys.", len(self._data))
 

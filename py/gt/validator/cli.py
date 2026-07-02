@@ -35,7 +35,7 @@ from .reporting.models import ValidationReport
 from .env import HAS_UNREAL
 
 
-_VERSION = "0.1.0"
+_VERSION = "1.0.0"
 
 _FORMATTERS = {
     "console": ConsoleFormatter,
@@ -252,7 +252,7 @@ def buildParser() -> argparse.ArgumentParser:
     
     """
     parser = argparse.ArgumentParser(
-        prog="python run_validator.py",
+        prog="validator",
         description="Asset Validation Framework — Production-hardened pipeline tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
