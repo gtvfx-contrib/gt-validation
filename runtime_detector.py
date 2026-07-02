@@ -118,7 +118,7 @@ def _detect_maya() -> bool:
 def _detect_max() -> bool:
     """Detect if running inside Autodesk 3ds Max."""
     try:
-        import MaxPlus  # noqa: F401
+        import pymxs  # noqa: F401
         return True
     except ImportError:
         return False
