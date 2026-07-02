@@ -103,7 +103,7 @@ class RuntimeDetector:
 def _detect_unreal() -> bool:
     """Detect if running inside Unreal Engine."""
     try:
-        import unreal  # noqa: F401
+        import unreal  # type: ignore
         # Try to access a basic Unreal API function
         unreal.SystemLibrary.get_engine_version()
         return True
@@ -115,8 +115,8 @@ def _detect_unreal() -> bool:
 def _detect_maya() -> bool:
     """Detect if running inside Autodesk Maya."""
     try:
-        import maya  # noqa: F401
-        import maya.cmds  # noqa: F401
+        import maya  # type: ignore
+        import maya.cmds  # type: ignore
         return True
     except ImportError:
         return False
@@ -126,8 +126,8 @@ def _detect_maya() -> bool:
 def _detect_max() -> bool:
     """Detect if running inside Autodesk 3ds Max."""
     try:
-        import pymxs  # noqa: F401
-        import pymxs.runtime  # noqa: F401
+        import pymxs  # type: ignore
+        import pymxs.runtime  # type: ignore
         return True
     except ImportError:
         return False
@@ -137,7 +137,7 @@ def _detect_max() -> bool:
 def _detect_houdini() -> bool:
     """Detect if running inside SideFX Houdini."""
     try:
-        import hou  # noqa: F401
+        import hou  # type: ignore
         return True
     except ImportError:
         return False
@@ -147,7 +147,7 @@ def _detect_houdini() -> bool:
 def _detect_blender() -> bool:
     """Detect if running inside Blender."""
     try:
-        import bpy  # noqa: F401
+        import bpy  # type: ignore
         return True
     except ImportError:
         return False
@@ -157,7 +157,7 @@ def _detect_blender() -> bool:
 def _detect_krita() -> bool:
     """Detect if running inside Krita."""
     try:
-        import krita  # noqa: F401
+        import krita  # type: ignore
         return True
     except ImportError:
         return False
