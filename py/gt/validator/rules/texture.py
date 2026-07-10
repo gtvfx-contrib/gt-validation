@@ -15,17 +15,23 @@ from ..registry import registry
 
 @registry.register
 class TextureDimensionRule(AbstractRule):
-    """Validates texture dimensions are power-of-two and within the configured limit.
+    """Validates texture dimensions are power-of-two and within the configured maximum.
 
     Attributes:
         name: Rule identifier ``"texture_dimension"``.
         category: Rule category ``"texture"``.
         severity: :attr:`Severity.ERROR`.
-    
+        context: Required host type for this rule (HostType.UNREAL).
+
     """
-    name     = "texture_dimension"
+    name = "texture_dimension"
     category = "texture"
     severity = Severity.ERROR
+    context = None  # Type: HostType
+
+    def __init__(self, config: "Config", context) -> None:
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the dimensions of the given texture asset.
@@ -36,13 +42,9 @@ class TextureDimensionRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the texture dimensions
             are power-of-two and within the configured maximum.
-        
+
         """
-        try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+        asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Texture2D):
             return self._makeSkipped(asset_path, f"Not a Texture2D (got {type(asset).__name__}).")
@@ -93,9 +95,14 @@ class TextureCompressionRule(AbstractRule):
         severity: :attr:`Severity.WARNING`.
     
     """
-    name     = "texture_compression"
+    name = "texture_compression"
     category = "texture"
     severity = Severity.WARNING
+    context = None  # Type: HostType
+
+    def __init__(self, config: "Config", context) -> None:
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the compression settings of the given texture asset.
@@ -106,13 +113,9 @@ class TextureCompressionRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the compression setting
             is appropriate for the detected texture type.
-        
+
         """
-        try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+        asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Texture2D):
             return self._makeSkipped(asset_path, f"Not a Texture2D (got {type(asset).__name__}).")

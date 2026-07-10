@@ -4,12 +4,12 @@ Rules:
     MaterialBlendModeRule — flag translucent materials.
     MaterialTwoSidedRule — flag two-sided materials.
     MaterialShadingModelRule — flag complex shading models.
-"""
 
+"""
 from __future__ import annotations
 
 from .base import AbstractRule, Severity, ValidationResult
-from ..env import HAS_UNREAL, loadUnrealAsset
+from ..env import loadUnrealAsset
 from ..errors import UnrealAPIError
 from ..registry import registry
 
@@ -25,11 +25,16 @@ class MaterialBlendModeRule(AbstractRule):
         name: Rule identifier ``"material_blend_mode"``.
         category: Rule category ``"material"``.
         severity: :attr:`Severity.WARNING`.
-    
+
     """
-    name     = "material_blend_mode"
+    name = "material_blend_mode"
     category = "material"
     severity = Severity.WARNING
+    context = None  # Type: HostType
+
+    def __init__(self, config: "Config", context) -> None:
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the blend mode of the given material asset.
@@ -40,13 +45,9 @@ class MaterialBlendModeRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the material uses an
             acceptable blend mode.
-        
+
         """
-        try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+        asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Material):
             return self._makeSkipped(asset_path, f"Not a Material (got {type(asset).__name__}).")
@@ -94,11 +95,16 @@ class MaterialTwoSidedRule(AbstractRule):
         name: Rule identifier ``"material_two_sided"``.
         category: Rule category ``"material"``.
         severity: :attr:`Severity.INFO`.
-    
+
     """
-    name     = "material_two_sided"
+    name = "material_two_sided"
     category = "material"
     severity = Severity.INFO
+    context = None  # Type: HostType
+
+    def __init__(self, config: "Config", context) -> None:
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the two-sided setting of the given material asset.
@@ -109,13 +115,9 @@ class MaterialTwoSidedRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether two-sided rendering
             is disabled on the material.
-        
+
         """
-        try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+        asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Material):
             return self._makeSkipped(asset_path, f"Not a Material (got {type(asset).__name__}).")
@@ -127,7 +129,7 @@ class MaterialTwoSidedRule(AbstractRule):
                     message="Material has Two-Sided rendering enabled — increases draw call cost.",
                     asset_class="Material",
                     fix_hint=(
-                        "Disable Two-Sided unless required (e.g., "
+                        "Disable Two-Sided unless required (e.g. "
                         "foliage). Consider geometry normals instead."
                     ),
                 )
@@ -156,6 +158,7 @@ class MaterialShadingModelRule(AbstractRule):
     name = "material_shading_model"
     category = "material"
     severity = Severity.WARNING
+    context = None  # Type: HostType
 
     _COMPLEX: tuple[str, ...] = (
         "Subsurface",
@@ -167,6 +170,10 @@ class MaterialShadingModelRule(AbstractRule):
         "SingleLayerWater",
         "ThinTranslucent",
     )
+
+    def __init__(self, config: "Config", context) -> None:
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Check that the material does not use a complex shading model.

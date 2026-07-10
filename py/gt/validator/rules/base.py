@@ -83,15 +83,18 @@ class AbstractRule(ABC):
         name: Unique snake_case identifier for the rule, e.g. ``"naming_convention"``.
         category: Rule category string used for grouping in reports.
         severity: Default :class:`Severity` for non-passing results.
-    
+        context: Required host type for this rule (e.g., ``HostType.UNREAL``).
+
     """
 
-    name:     str      = ""
-    category: str      = ""
+    name: str = ""
+    category: str = ""
     severity: Severity = Severity.ERROR
+    context = None  # Type: HostType
 
-    def __init__(self, config: "Config") -> None:
+    def __init__(self, config: "Config", context) -> None:
         self.config = config
+        self.context = context
 
     def isEnabled(self) -> bool:
         """Return whether this rule is enabled in the current config.

@@ -19,6 +19,7 @@ from .config import Config
 from .registry import registry
 from .rules.base import AbstractRule, ValidationResult, Severity
 from .reporting.models import ValidationReport
+from gt.runtime import HostType
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ class ValidationRunner:
             allowlist: Optional AllowlistManager instance.
             max_workers: Number of worker threads.  ``1`` = serial (safe in
                 Unreal).  Default: ``VALIDATOR_MAX_WORKERS`` env var or CPU count.
-        
+
         """
         self.config    = config
         self.category   = category
@@ -81,9 +82,11 @@ class ValidationRunner:
                     logger.warning(
                         "[ValidationRunner] No rules matched "
                         "(category=%r, severity=%r). Registered: %s",
-                        category, severity, list(registry.listRules().keys()),
+                        category, severity, list(registry.listRules().keys()).
                     )
-                self.rules = [R(config) for R in rule_classes]
+                # Get current context for context-aware rules
+                current_context = HostType.UNREAL if context is None else context
+                self.rules = [R(config, context=current_context) for R in rule_classes]
         except Exception as e:
             logger.error(f"[ValidationRunner] Failed to initialize rules: {e}")
             raise

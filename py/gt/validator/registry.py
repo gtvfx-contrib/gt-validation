@@ -171,16 +171,18 @@ class RuleRegistry:
         self,
         category: str | None = None,
         severity=None,
+        context=None,
     ) -> list[Type]:
         """Return registered rule classes, optionally filtered.
 
         Args:
             category: If provided, only rules with this category are returned.
             severity: If provided, only rules with this severity are returned.
+            context: If provided, only rules with this context are returned.
 
         Returns:
             A list of rule classes matching the given filters.
-        
+
         """
         rules = list(self._rules.values())
         if category:
@@ -188,6 +190,8 @@ class RuleRegistry:
             rules = [r for r in rules if r.category.lower() == cat_lower]
         if severity is not None:
             rules = [r for r in rules if r.severity == severity]
+        if context is not None:
+            rules = [r for r in rules if getattr(r, 'context', None) == context]
         return rules
 
     def listRules(self) -> dict[str, Type]:
