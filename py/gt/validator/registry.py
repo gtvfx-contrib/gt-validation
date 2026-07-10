@@ -2,7 +2,8 @@
 
 Provides a global registry that rules can register themselves with using the
 ``@registry.register`` decorator.  The registry supports auto-discovery of
-rules from the rules subpackage.
+rules from the rules subpackage, and can also discover rules from paths specified
+in the ENVOY_VALIDATION_RULES environment variable.
 
 Usage::
 
@@ -13,11 +14,18 @@ Usage::
         name = "my_rule"
         ...
 
+The ENVOY_VALIDATION_RULES environment variable can contain multiple paths
+separated by os.pathsep (e.g., os.pathsep on Unix, ';' on Windows). Rules in
+these additional paths will be discovered and registered alongside the default
+rules from the validator.rules package. This allows for external rule plugins to
+be easily integrated into the validation framework without modifying the core codebase.
+
 """
 from __future__ import annotations
 
 import importlib
 import logging
+import os
 import pkgutil
 from typing import Type, TYPE_CHECKING
 
@@ -91,6 +99,7 @@ class RuleRegistry:
             return
         type(self)._discovered = True
 
+        # Discover rules from the default location (the rules subpackage)
         from . import rules as rules_pkg
         for _finder, module_name, _is_pkg in pkgutil.iter_modules(rules_pkg.__path__):
             if module_name == "base":
@@ -103,6 +112,36 @@ class RuleRegistry:
                 logger.warning(
                     "[Registry] Could not import '%s': %s", full_name, exc
                 )
+        
+        # Discover rules from additional paths specified in ENVOY_VALIDATION_RULES environment variable
+        envoy_rules_paths = os.environ.get("ENVOY_VALIDATION_RULES")
+        if envoy_rules_paths:
+            for path in envoy_rules_paths.split(os.pathsep):
+                path = path.strip()
+                if not path:
+                    continue
+                try:
+                    # Add the path to sys.path temporarily so we can import modules from it
+                    import sys
+                    if path not in sys.path:
+                        sys.path.insert(0, path)
+                    
+                    # Try to discover modules in this path
+                    for _finder, module_name, _is_pkg in pkgutil.iter_modules([path]):
+                        if module_name == "base":
+                            continue
+                        full_name = module_name  # Since we're importing from the path directly
+                        try:
+                            importlib.import_module(full_name)
+                            logger.debug("[Registry] Discovered module: %s", full_name)
+                        except ImportError as exc:
+                            logger.warning(
+                                "[Registry] Could not import '%s': %s", full_name, exc
+                            )
+                except Exception as exc:
+                    logger.warning(
+                        "[Registry] Could not discover rules from path '%s': %s", path, exc
+                    )
 
     def getRules(
         self,
