@@ -8,12 +8,18 @@ Rules:
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from gt.runtime import HostType
+
+if TYPE_CHECKING:
+    import unreal  # noqa: PLC0415
+
 from .base import AbstractRule, Severity, ValidationResult
 from ..config import Config
 from ..env import loadUnrealAsset
 from ..errors import UnrealAPIError
 from ..registry import registry
-from gt.runtime import HostType
 
 
 @registry.register
@@ -49,6 +55,8 @@ class MaterialBlendModeRule(AbstractRule):
             acceptable blend mode.
 
         """
+        import unreal  # noqa: PLC0415
+
         asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Material):
@@ -117,6 +125,8 @@ class MaterialTwoSidedRule(AbstractRule):
             is disabled on the material.
 
         """
+        import unreal  # noqa: PLC0415
+
         asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Material):
