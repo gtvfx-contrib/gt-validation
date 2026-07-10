@@ -9,9 +9,11 @@ Rules:
 from __future__ import annotations
 
 from .base import AbstractRule, Severity, ValidationResult
+from ..config import Config
 from ..env import loadUnrealAsset
 from ..errors import UnrealAPIError
 from ..registry import registry
+from gt.runtime import HostType
 
 
 @registry.register
@@ -25,16 +27,16 @@ class MaterialBlendModeRule(AbstractRule):
         name: Rule identifier ``"material_blend_mode"``.
         category: Rule category ``"material"``.
         severity: :attr:`Severity.WARNING`.
+        context: Required host type for this rule (HostType.UNREAL).
 
     """
     name = "material_blend_mode"
     category = "material"
     severity = Severity.WARNING
-    context = None  # Type: HostType
+    context = HostType.UNREAL
 
-    def __init__(self, config: "Config", context) -> None:
-        super().__init__(config)
-        self.context = context
+    def __init__(self, config: "Config", context: HostType) -> None:
+        super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the blend mode of the given material asset.
@@ -53,36 +55,34 @@ class MaterialBlendModeRule(AbstractRule):
             return self._makeSkipped(asset_path, f"Not a Material (got {type(asset).__name__}).")
 
         try:
-            try:
-                blend_mode = asset.get_editor_property("blend_mode")
-            except Exception:  # noqa: BLE001 - Unreal bridge safety
-                blend_mode = asset.blend_mode
-            is_translucent = blend_mode in (
-                unreal.BlendMode.BLEND_TRANSLUCENT,
-                unreal.BlendMode.BLEND_ADDITIVE,
-                unreal.BlendMode.BLEND_MODULATE,
-            )
+            blend_mode = asset.get_editor_property("blend_mode")
+        except Exception:  # noqa: BLE001 - Unreal bridge safety
+            blend_mode = asset.blend_mode
 
-            if is_translucent:
-                return self._makeResult(
-                    asset_path, passed=False,
-                    message=(
-                        f"Material uses translucent blend mode '{blend_mode}'. "
-                        f"Translucent materials are expensive — use with caution."
-                    ),
-                    asset_class="Material",
-                    fix_hint=(
-                        "Consider using Masked or Opaque blend mode if "
-                        "transparency is not essential."
-                    ),
-                )
+        is_translucent = blend_mode in (
+            unreal.BlendMode.BLEND_TRANSLUCENT,
+            unreal.BlendMode.BLEND_ADDITIVE,
+            unreal.BlendMode.BLEND_MODULATE,
+        )
+
+        if is_translucent:
             return self._makeResult(
-                asset_path, passed=True,
-                message=f"Material blend mode '{blend_mode}' is acceptable.",
+                asset_path, passed=False,
+                message=(
+                    f"Material uses translucent blend mode '{blend_mode}'. "
+                    f"Translucent materials are expensive — use with caution."
+                ),
                 asset_class="Material",
+                fix_hint=(
+                    "Consider using Masked or Opaque blend mode if "
+                    "transparency is not essential."
+                ),
             )
-        except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-            return self._makeSkipped(asset_path, f"Validation error: {exc}")
+        return self._makeResult(
+            asset_path, passed=True,
+            message=f"Material blend mode '{blend_mode}' is acceptable.",
+            asset_class="Material",
+        )
 
 
 @registry.register
@@ -95,16 +95,16 @@ class MaterialTwoSidedRule(AbstractRule):
         name: Rule identifier ``"material_two_sided"``.
         category: Rule category ``"material"``.
         severity: :attr:`Severity.INFO`.
+        context: Required host type for this rule (HostType.UNREAL).
 
     """
     name = "material_two_sided"
     category = "material"
     severity = Severity.INFO
-    context = None  # Type: HostType
+    context = HostType.UNREAL
 
-    def __init__(self, config: "Config", context) -> None:
-        super().__init__(config)
-        self.context = context
+    def __init__(self, config: "Config", context: HostType) -> None:
+        super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the two-sided setting of the given material asset.
@@ -154,11 +154,17 @@ class MaterialShadingModelRule(AbstractRule):
     Config key: allowed_shading_models (list[str]).
     Default allowlist: DefaultLit, Unlit, ClearCoat.
 
+    Attributes:
+        name: Rule identifier ``"material_shading_model"``.
+        category: Rule category ``"material"``.
+        severity: :attr:`Severity.WARNING`.
+        context: Required host type for this rule (HostType.UNREAL).
+
     """
     name = "material_shading_model"
     category = "material"
     severity = Severity.WARNING
-    context = None  # Type: HostType
+    context = HostType.UNREAL
 
     _COMPLEX: tuple[str, ...] = (
         "Subsurface",
@@ -171,9 +177,8 @@ class MaterialShadingModelRule(AbstractRule):
         "ThinTranslucent",
     )
 
-    def __init__(self, config: "Config", context) -> None:
-        super().__init__(config)
-        self.context = context
+    def __init__(self, config: "Config", context: HostType) -> None:
+        super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Check that the material does not use a complex shading model.
@@ -185,12 +190,6 @@ class MaterialShadingModelRule(AbstractRule):
             A :class:`ValidationResult` describing the check outcome.
 
         """
-        if not HAS_UNREAL:
-            return self._makeSkipped(
-                asset_path,
-                "Requires Unreal Editor.",
-            )
-
         import unreal as _ue  # noqa: PLC0415
 
         try:
