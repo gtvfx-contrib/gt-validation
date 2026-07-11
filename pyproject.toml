@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gt-validation"
+dynamic = ["version"]
+requires-python = ">=3.10"
+description = "Asset validation framework for Unreal Engine."
+readme = "README.md"
+license = { file = "LICENSE" }
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8",
+]
+docs = [
+    "properdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "py/gt/validator/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["py/gt/validator"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["py"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "D",   # pydocstyle (docstring presence/structure)
+    "UP",  # pyupgrade
+]
+ignore = [
+    # This repo intentionally uses camelCase for function/method names (to
+    # visually distinguish callables from variables) and snake_case for
+    # @property methods. pep8-naming can't apply per-decorator exceptions,
+    # so function/method naming is left unchecked here.
+    "N802",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Missing-docstring rules are noisy for test modules.
+"**/tests/**" = ["D"]
+
+[tool.ruff.format]
+quote-style = "preserve"
