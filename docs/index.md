@@ -23,4 +23,4 @@ print(report.summaryLine())
 
 | Topic | Description |
 |---|---|
-| [API Reference](reference/gt/validator.md) | Complete Python API documentation |
+| [API Reference](reference/gt.validator.md) | Complete Python API documentation |
