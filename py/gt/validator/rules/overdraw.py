@@ -4,9 +4,10 @@ True overdraw measurement requires GPU profiling. This rule flags
 materials using translucent or additive blend modes because they are
 common overdraw risk indicators.
 """
-from .base import AbstractRule, Severity, ValidationResult
-from ..registry import registry
+
 from ..env import HAS_UNREAL
+from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
 
 
 def _getMaterialBlendMode(asset) -> str:

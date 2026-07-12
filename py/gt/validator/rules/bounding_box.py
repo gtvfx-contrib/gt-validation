@@ -5,12 +5,13 @@ Rules:
     BoundingBoxOriginRule: Validates the pivot offset from the world origin is within the limit.
 
 """
+
 from __future__ import annotations
 
-from .base import AbstractRule, Severity, ValidationResult
 from ..env import loadUnrealAsset
 from ..errors import UnrealAPIError
 from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
 
 
 def _readMeshBoundsMetrics(asset, unreal_module) -> tuple[float, float, float, float, float, float]:
@@ -57,9 +58,10 @@ class BoundingBoxExtentRule(AbstractRule):
         name: Rule identifier ``"bounding_box_extent"``.
         category: Rule category ``"bounding_box"``.
         severity: :attr:`Severity.WARNING`.
-    
+
     """
-    name     = "bounding_box_extent"
+
+    name = "bounding_box_extent"
     category = "bounding_box"
     severity = Severity.WARNING
 
@@ -72,7 +74,7 @@ class BoundingBoxExtentRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the bounding box extent
             is within the configured limit.
-        
+
         """
         try:
             asset = loadUnrealAsset(asset_path)
@@ -83,7 +85,7 @@ class BoundingBoxExtentRule(AbstractRule):
         if not isinstance(asset, (unreal.StaticMesh, unreal.SkeletalMesh)):
             return self._makeSkipped(
                 asset_path,
-                f"Bounding box check only applies to mesh assets (got {type(asset).__name__})."
+                f"Bounding box check only applies to mesh assets (got {type(asset).__name__}).",
             )
 
         try:
@@ -94,22 +96,22 @@ class BoundingBoxExtentRule(AbstractRule):
 
             if max_component > max_uu:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=(
                         f"Bounding box extent {max_component:.1f} UU exceeds limit {max_uu} UU "
                         f"(X={extent_x:.1f}, Y={extent_y:.1f}, Z={extent_z:.1f})."
                     ),
                     asset_class=asset_class,
                     fix_hint=(
-                        "Check mesh scale — may have been imported with incorrect "
-                        "units (cm vs m)."
+                        "Check mesh scale — may have been imported with incorrect units (cm vs m)."
                     ),
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message=(
-                    f"Bounding box extent {max_component:.1f} UU — "
-                    f"within limit of {max_uu} UU."
+                    f"Bounding box extent {max_component:.1f} UU — within limit of {max_uu} UU."
                 ),
                 asset_class=asset_class,
             )
@@ -127,9 +129,10 @@ class BoundingBoxOriginRule(AbstractRule):
         name: Rule identifier ``"bounding_box_origin"``.
         category: Rule category ``"bounding_box"``.
         severity: :attr:`Severity.WARNING`.
-    
+
     """
-    name     = "bounding_box_origin"
+
+    name = "bounding_box_origin"
     category = "bounding_box"
     severity = Severity.WARNING
 
@@ -142,7 +145,7 @@ class BoundingBoxOriginRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the mesh center
             is within the configured offset limit from the world origin.
-        
+
         """
         try:
             asset = loadUnrealAsset(asset_path)
@@ -153,18 +156,19 @@ class BoundingBoxOriginRule(AbstractRule):
         if not isinstance(asset, (unreal.StaticMesh, unreal.SkeletalMesh)):
             return self._makeSkipped(
                 asset_path,
-                f"Origin check only applies to mesh assets (got {type(asset).__name__})."
+                f"Origin check only applies to mesh assets (got {type(asset).__name__}).",
             )
 
         try:
             _, _, _, center_x, center_y, center_z = _readMeshBoundsMetrics(asset, unreal)
-            offset = (center_x ** 2 + center_y ** 2 + center_z ** 2) ** 0.5
+            offset = (center_x**2 + center_y**2 + center_z**2) ** 0.5
             max_offset: float = self.config.get("max_pivot_offset_uu", 10.0)
             asset_class = type(asset).__name__
 
             if offset > max_offset:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=(
                         f"Mesh center is {offset:.1f} UU from origin "
                         f"(X={center_x:.1f}, Y={center_y:.1f}, Z={center_z:.1f}) — "
@@ -172,15 +176,14 @@ class BoundingBoxOriginRule(AbstractRule):
                     ),
                     asset_class=asset_class,
                     fix_hint=(
-                        "Reset the pivot to world origin in your DCC tool "
-                        "before re-importing."
+                        "Reset the pivot to world origin in your DCC tool before re-importing."
                     ),
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message=(
-                    f"Mesh center is {offset:.1f} UU from origin — "
-                    f"within limit of {max_offset} UU."
+                    f"Mesh center is {offset:.1f} UU from origin — within limit of {max_offset} UU."
                 ),
                 asset_class=asset_class,
             )

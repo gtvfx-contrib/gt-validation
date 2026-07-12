@@ -2,6 +2,7 @@
 
 This module contains tests for the HostType enum and RuntimeDetector.
 """
+
 from __future__ import annotations
 
 import unittest
@@ -42,7 +43,7 @@ class TestHostTypeDetection(unittest.TestCase):
         # Test comparison with string
         self.assertEqual(HostType.UNREAL, "unreal")
         self.assertEqual(HostType.UNREAL, HostType.UNREAL)
-        
+
         # Test hash
         self.assertEqual(hash(HostType.UNREAL), hash("unreal"))
 

@@ -8,9 +8,11 @@ This module contains tests for the context-aware rule system, including:
 from __future__ import annotations
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from gt.runtime import HostType
+
+from ...config import Config
 from ..base import AbstractRule, Severity
 from ..registry import registry
 
@@ -33,7 +35,7 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: "Config", context: HostType) -> None:
+            def __init__(self, config: Config, context: HostType) -> None:
                 super().__init__(config)
                 self.context = context
 
@@ -51,7 +53,7 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: "Config", context: HostType) -> None:
+            def __init__(self, config: Config, context: HostType) -> None:
                 super().__init__(config)
                 self.context = context
 
@@ -59,31 +61,31 @@ class TestContextAwareRules(unittest.TestCase):
                 ...
 
         @registry.register
-            class StandaloneRule(AbstractRule):
-                name = "standalone_rule"
-                category = "standalone"
-                severity = Severity.ERROR
-                context = HostType.STANDALONE
+        class StandaloneRule(AbstractRule):
+            name = "standalone_rule"
+            category = "standalone"
+            severity = Severity.ERROR
+            context = HostType.STANDALONE
 
-                def __init__(self, config: "Config", context: HostType) -> None:
-                    super().__init__(config)
-                    self.context = context
+            def __init__(self, config: Config, context: HostType) -> None:
+                super().__init__(config)
+                self.context = context
 
-                def validate(self, asset_path: str) -> AbstractRule:
-                    ...
+            def validate(self, asset_path: str) -> AbstractRule:
+                ...
 
         registry.discover()
-        
+
         # Test UNREAL context
         unreal_rules = registry.getRules(context=HostType.UNREAL)
         self.assertEqual(len(unreal_rules), 1)
         self.assertEqual(unreal_rules[0].name, "unreal_rule")
-        
+
         # Test STANDALONE context
         standalone_rules = registry.getRules(context=HostType.STANDALONE)
         self.assertEqual(len(standalone_rules), 1)
         self.assertEqual(standalone_rules[0].name, "standalone_rule")
-        
+
         # Test NONE context (no filter)
         all_rules = registry.getRules()
         self.assertEqual(len(all_rules), 2)
@@ -97,7 +99,7 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: "Config", context: HostType) -> None:
+            def __init__(self, config: Config, context: HostType) -> None:
                 super().__init__(config)
                 self.context = context
 
@@ -105,7 +107,7 @@ class TestContextAwareRules(unittest.TestCase):
                 ...
 
         registry.discover()
-        
+
         # Should not raise an error
         rules = registry.getRules(context=HostType.UNREAL)
         self.assertEqual(len(rules), 1)
@@ -119,7 +121,7 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: "Config", context: HostType) -> None:
+            def __init__(self, config: Config, context: HostType) -> None:
                 super().__init__(config)
                 self.context = context
 

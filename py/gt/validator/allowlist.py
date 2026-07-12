@@ -21,10 +21,11 @@ JSON format::
     }
 
 """
+
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -43,12 +44,18 @@ class AllowlistEntry:
         author: Username or identifier of the approver.
         created_at: Timestamp when the entry was added.
         expires_at: Optional timestamp when the entry expires.
-    
+
     """
 
-    def __init__(self, rule: str, asset: str, reason: str = "",
-                 author: str = "", created_at: str | None = None,
-                 expires_at: str | None = None) -> None:
+    def __init__(
+        self,
+        rule: str,
+        asset: str,
+        reason: str = "",
+        author: str = "",
+        created_at: str | None = None,
+        expires_at: str | None = None,
+    ) -> None:
         """Initialise an allowlist entry.
 
         Args:
@@ -59,7 +66,7 @@ class AllowlistEntry:
             created_at: Timestamp when the entry was added.
             expires_at: Optional expiry date string in ``YYYY-MM-DD`` format.
                 Entries past this date are treated as expired.
-        
+
         """
         self.rule = rule
         self.asset = asset
@@ -72,7 +79,7 @@ class AllowlistEntry:
         """Return True if this entry has passed its expiry date."""
         if not self.expires_at:
             return False
-            
+
         try:
             expire_date = datetime.fromisoformat(self.expires_at)
             return datetime.now() > expire_date
@@ -80,14 +87,16 @@ class AllowlistEntry:
             # Invalid date format, treat as expired
             logger.warning(
                 "[Allowlist] Invalid expiry date '%s' for rule=%s asset=%s — treating as expired.",
-                self.expires_at, self.rule, self.asset,
+                self.expires_at,
+                self.rule,
+                self.asset,
             )
             return True
 
     def __repr__(self) -> str:
+        """Return a string representation of the allowlist entry."""
         return (
-            f"AllowlistEntry(rule={self.rule!r}, asset={self.asset!r}, "
-            f"expires={self.expires_at!r})"
+            f"AllowlistEntry(rule={self.rule!r}, asset={self.asset!r}, expires={self.expires_at!r})"
         )
 
 
@@ -104,20 +113,20 @@ class AllowlistManager:
         manager = AllowlistManager(config)
         if manager.isAllowed("material_blend_mode", "/Game/M_HeroSkin"):
             return self._makeResult(asset_path, passed=True, message="Allowlisted.")
-    
+
     """
 
-    def __init__(self, config: "Config") -> None:
+    def __init__(self, config: Config) -> None:
         """Initialise the manager and load entries from config.
 
         Args:
             config: Loaded :class:`~validator.config.Config` instance.
                 The ``allowlist`` key must contain a list of entry dicts.
-        
+
         """
         self.entries: list[AllowlistEntry] = []
         self.config = config
-        
+
         # Load allowlist from config
         raw_entries: list[dict] = config.get("allowlist", [])
         for raw in raw_entries:
@@ -126,17 +135,19 @@ class AllowlistManager:
                 continue
             try:
                 entry = AllowlistEntry(
-                    rule    = raw.get("rule", ""),
-                    asset   = raw.get("asset", ""),
-                    reason  = raw.get("reason", ""),
-                    author  = raw.get("author", ""),
-                    created_at = raw.get("created_at"),
-                    expires_at = raw.get("expires"),
+                    rule=raw.get("rule", ""),
+                    asset=raw.get("asset", ""),
+                    reason=raw.get("reason", ""),
+                    author=raw.get("author", ""),
+                    created_at=raw.get("created_at"),
+                    expires_at=raw.get("expires"),
                 )
                 if entry.isExpired():
                     logger.warning(
                         "[Allowlist] Expired entry skipped: rule=%s asset=%s expired=%s",
-                        entry.rule, entry.asset, entry.expires_at,
+                        entry.rule,
+                        entry.asset,
+                        entry.expires_at,
                     )
                 else:
                     self.entries.append(entry)
@@ -158,7 +169,7 @@ class AllowlistManager:
         Returns:
             ``True`` when an active (non-expired) entry matches, ``False``
             otherwise.
-        
+
         """
         for entry in self.entries:
             if entry.rule == rule_name and entry.asset == asset_path:
@@ -174,7 +185,7 @@ class AllowlistManager:
 
         Returns:
             The matching entry, or ``None`` if no active entry is found.
-        
+
         """
         for entry in self.entries:
             if entry.rule == rule_name and entry.asset == asset_path:
@@ -182,7 +193,9 @@ class AllowlistManager:
         return None
 
     def __len__(self) -> int:
+        """Return the number of active allowlist entries."""
         return len(self.entries)
 
     def __repr__(self) -> str:
+        """Return a string representation of the allowlist manager."""
         return f"AllowlistManager(entries={len(self.entries)})"

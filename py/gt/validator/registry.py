@@ -14,6 +14,7 @@ Usage::
         ...
 
 """
+
 from __future__ import annotations
 
 import importlib
@@ -21,10 +22,10 @@ import importlib.util
 import logging
 import os
 import pkgutil
-from typing import Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .rules.base import AbstractRule, Severity
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -49,16 +50,17 @@ class RuleRegistry:
 
     """
 
-    _instance: "RuleRegistry | None" = None
-    _rules: "dict[str, Type]" = {}
+    _instance: RuleRegistry | None = None
+    _rules: dict[str, type] = {}
     _discovered: bool = False
 
-    def __new__(cls) -> "RuleRegistry":
+    def __new__(cls) -> RuleRegistry:
+        """Create or return the singleton RuleRegistry instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def register(self, cls: "Type") -> "Type":
+    def register(self, cls: type) -> type:
         """Class decorator — registers a rule class.
 
         Reads ``name``, ``category``, and ``severity`` directly from the class.
@@ -75,7 +77,8 @@ class RuleRegistry:
         if name in self._rules:
             logger.warning(
                 "[Registry] Rule '%s' already registered — overwriting with %s.",
-                name, cls.__name__,
+                name,
+                cls.__name__,
             )
         self._rules[name] = cls
         logger.debug("[Registry] Registered rule '%s' (%s).", name, cls.__name__)
@@ -113,6 +116,7 @@ class RuleRegistry:
             # Fall back to default rules subpackage
             logger.debug("[Registry] ENVOY_VALIDATION_RULES not set, using default rules package")
             from . import rules as rules_pkg
+
             self._discover_from_package(rules_pkg)
 
     def _discover_from_path(self, path: str) -> None:
@@ -129,9 +133,7 @@ class RuleRegistry:
                 # Import the module dynamically
                 module_path = os.path.join(path, module_name + ".py")
                 if not os.path.exists(module_path):
-                    logger.warning(
-                        "[Registry] Module file not found at '%s'", module_path
-                    )
+                    logger.warning("[Registry] Module file not found at '%s'", module_path)
                     continue
                 try:
                     spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -144,9 +146,7 @@ class RuleRegistry:
                         "[Registry] Could not import module from '%s': %s", module_path, exc
                     )
         except Exception as exc:
-            logger.warning(
-                "[Registry] Error discovering modules from path '%s': %s", path, exc
-            )
+            logger.warning("[Registry] Error discovering modules from path '%s': %s", path, exc)
 
     def _discover_from_package(self, package) -> None:
         """Discover and import rule modules from a package.
@@ -163,16 +163,14 @@ class RuleRegistry:
                 importlib.import_module(full_name)
                 logger.debug("[Registry] Discovered module: %s", full_name)
             except ImportError as exc:
-                logger.warning(
-                    "[Registry] Could not import '%s': %s", full_name, exc
-                )
+                logger.warning("[Registry] Could not import '%s': %s", full_name, exc)
 
     def getRules(
         self,
         category: str | None = None,
         severity=None,
         context=None,
-    ) -> list[Type]:
+    ) -> list[type]:
         """Return registered rule classes, optionally filtered.
 
         Args:
@@ -194,7 +192,7 @@ class RuleRegistry:
             rules = [r for r in rules if getattr(r, 'context', None) == context]
         return rules
 
-    def listRules(self) -> dict[str, Type]:
+    def listRules(self) -> dict[str, type]:
         """Return a copy of the rules dict {name: class}."""
         return dict(self._rules)
 
@@ -204,9 +202,11 @@ class RuleRegistry:
         type(self)._discovered = False
 
     def __len__(self) -> int:
+        """Return the number of registered rules."""
         return len(self._rules)
 
     def __repr__(self) -> str:
+        """Return a string representation of the rule registry."""
         return f"RuleRegistry(rules={list(self._rules.keys())})"
 
 

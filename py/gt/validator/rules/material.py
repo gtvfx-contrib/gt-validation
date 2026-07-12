@@ -6,6 +6,7 @@ Rules:
     MaterialShadingModelRule — flag complex shading models.
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,13 +14,12 @@ from typing import TYPE_CHECKING
 from gt.runtime import HostType
 
 if TYPE_CHECKING:
-    import unreal  # noqa: PLC0415
+    pass  # noqa: PLC0415
 
-from .base import AbstractRule, Severity, ValidationResult
 from ..config import Config
 from ..env import loadUnrealAsset
-from ..errors import UnrealAPIError
 from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
 
 
 @registry.register
@@ -36,12 +36,20 @@ class MaterialBlendModeRule(AbstractRule):
         context: Required host type for this rule (HostType.UNREAL).
 
     """
+
     name = "material_blend_mode"
     category = "material"
     severity = Severity.WARNING
     context = HostType.UNREAL
 
-    def __init__(self, config: "Config", context: HostType) -> None:
+    def __init__(self, config: Config, context: HostType) -> None:
+        """Initialise the material blend mode rule.
+
+        Args:
+            config: Layered Config object.
+            context: Validation context instance.
+
+        """
         super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
@@ -75,19 +83,20 @@ class MaterialBlendModeRule(AbstractRule):
 
         if is_translucent:
             return self._makeResult(
-                asset_path, passed=False,
+                asset_path,
+                passed=False,
                 message=(
                     f"Material uses translucent blend mode '{blend_mode}'. "
                     f"Translucent materials are expensive — use with caution."
                 ),
                 asset_class="Material",
                 fix_hint=(
-                    "Consider using Masked or Opaque blend mode if "
-                    "transparency is not essential."
+                    "Consider using Masked or Opaque blend mode if transparency is not essential."
                 ),
             )
         return self._makeResult(
-            asset_path, passed=True,
+            asset_path,
+            passed=True,
             message=f"Material blend mode '{blend_mode}' is acceptable.",
             asset_class="Material",
         )
@@ -106,12 +115,20 @@ class MaterialTwoSidedRule(AbstractRule):
         context: Required host type for this rule (HostType.UNREAL).
 
     """
+
     name = "material_two_sided"
     category = "material"
     severity = Severity.INFO
     context = HostType.UNREAL
 
-    def __init__(self, config: "Config", context: HostType) -> None:
+    def __init__(self, config: Config, context: HostType) -> None:
+        """Initialise the material two-sided rule.
+
+        Args:
+            config: Layered Config object.
+            context: Validation context instance.
+
+        """
         super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
@@ -135,7 +152,8 @@ class MaterialTwoSidedRule(AbstractRule):
         try:
             if asset.get_editor_property("two_sided"):
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message="Material has Two-Sided rendering enabled — increases draw call cost.",
                     asset_class="Material",
                     fix_hint=(
@@ -144,7 +162,8 @@ class MaterialTwoSidedRule(AbstractRule):
                     ),
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message="Material Two-Sided is disabled.",
                 asset_class="Material",
             )
@@ -171,6 +190,7 @@ class MaterialShadingModelRule(AbstractRule):
         context: Required host type for this rule (HostType.UNREAL).
 
     """
+
     name = "material_shading_model"
     category = "material"
     severity = Severity.WARNING
@@ -187,7 +207,14 @@ class MaterialShadingModelRule(AbstractRule):
         "ThinTranslucent",
     )
 
-    def __init__(self, config: "Config", context: HostType) -> None:
+    def __init__(self, config: Config, context: HostType) -> None:
+        """Initialise the material shading model rule.
+
+        Args:
+            config: Layered Config object.
+            context: Validation context instance.
+
+        """
         super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:

@@ -1,4 +1,5 @@
 """Abstract base classes and core data types for all validation rules."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -18,11 +19,12 @@ class Severity(Enum):
         ERROR: Pipeline should stop; asset is unusable.
         WARNING: Pipeline can continue; asset needs attention.
         INFO: Informational note; no action required.
-    
+
     """
-    ERROR   = "ERROR"
+
+    ERROR = "ERROR"
     WARNING = "WARNING"
-    INFO    = "INFO"
+    INFO = "INFO"
 
 
 @dataclass
@@ -41,21 +43,23 @@ class ValidationResult:
         duration_ms: Time taken to run this check, in milliseconds.
         asset_class: Unreal asset class name if known, e.g. ``"StaticMesh"``.
         fix_hint: Brief suggestion for how to resolve a failure.
-    
+
     """
-    asset_path:  str
-    rule_name:   str
-    category:    str
-    severity:    Severity
-    message:     str
-    passed:      bool
-    skipped:     bool  = False
-    timestamp:   str   = field(default_factory=lambda: datetime.now().isoformat())
+
+    asset_path: str
+    rule_name: str
+    category: str
+    severity: Severity
+    message: str
+    passed: bool
+    skipped: bool = False
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     duration_ms: float = 0.0
-    asset_class: str   = ""
-    fix_hint:    str   = ""
+    asset_class: str = ""
+    fix_hint: str = ""
 
     def __str__(self) -> str:
+        """Return a human-readable string representation of the result."""
         if self.skipped:
             return (
                 f"[SKIP] - [{self.severity.value:<7}] "
@@ -63,8 +67,8 @@ class ValidationResult:
                 f"         {self.message}"
             )
         status = "PASS" if self.passed else "FAIL"
-        icon   = "v"   if self.passed else "x"
-        hint   = f"\n         Hint: {self.fix_hint}" if self.fix_hint and not self.passed else ""
+        icon = "v" if self.passed else "x"
+        hint = f"\n         Hint: {self.fix_hint}" if self.fix_hint and not self.passed else ""
         return (
             f"[{status}] {icon} [{self.severity.value:<7}] "
             f"{self.rule_name:<30} {self.asset_path}\n"
@@ -92,7 +96,14 @@ class AbstractRule(ABC):
     severity: Severity = Severity.ERROR
     context = None  # Type: HostType
 
-    def __init__(self, config: "Config", context) -> None:
+    def __init__(self, config: Config, context) -> None:
+        """Initialise the rule with config and context.
+
+        Args:
+            config: Layered Config object.
+            context: Validation context instance.
+
+        """
         self.config = config
         self.context = context
 
@@ -117,7 +128,7 @@ class AbstractRule(ABC):
 
         Returns:
             A :class:`ValidationResult` with pass, fail, or skip status.
-        
+
         """
         ...
 
@@ -142,7 +153,7 @@ class AbstractRule(ABC):
 
         Returns:
             A fully populated :class:`ValidationResult`.
-        
+
         """
         return ValidationResult(
             asset_path=asset_path,
@@ -167,7 +178,7 @@ class AbstractRule(ABC):
 
         Returns:
             A :class:`ValidationResult` with ``skipped=True`` and ``passed=True``.
-        
+
         """
         return ValidationResult(
             asset_path=asset_path,

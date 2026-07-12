@@ -16,6 +16,7 @@ runOnPath(content_path)
     Validate all assets under an explicit content-browser path.
 
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,8 +29,8 @@ from ...reporting import HTMLFormatter, JSONFormatter
 from ...reporting.models import ValidationReport
 from ...runner import ValidationRunner
 
-
 # ── Logging ───────────────────────────────────────────────────────────────── #
+
 
 def _log(message: str) -> None:
     """Print a message to the Unreal Output Log."""
@@ -47,6 +48,7 @@ def _logError(message: str) -> None:
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────── #
+
 
 def _canShowSlowTaskDialog() -> bool:
     """Return True for editor entry-point flows that support slow-task dialogs."""
@@ -85,10 +87,7 @@ def _outputReport(
                 "assets processed)."
             )
     elif report.hasErrors():
-        _logError(
-            f"[Validator] {report.failed} failure(s) found. "
-            "See Output Log for details."
-        )
+        _logError(f"[Validator] {report.failed} failure(s) found. See Output Log for details.")
     else:
         _log("[Validator] Validation complete — no errors found.")
 
@@ -102,6 +101,7 @@ def _outputReport(
 
 
 # ── Public API ────────────────────────────────────────────────────────────── #
+
 
 def runOnSelectedAssets() -> None:
     """Validate the assets currently selected in the Content Browser.
@@ -189,7 +189,7 @@ def runOnSelectedFolders() -> None:
     except UnrealAPIError as exc:
         _logError(f"[Validator] Unreal API error: {exc}")
         raise
-    
+
     if report:
         _outputReport(
             report,

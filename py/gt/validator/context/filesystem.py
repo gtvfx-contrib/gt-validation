@@ -4,18 +4,19 @@ Collects asset metadata using only the local filesystem.  Works in any
 Python environment — no Unreal dependency.
 
 """
+
 from __future__ import annotations
 
 import os
 
-from .base import ValidationContext, AssetMetadata
+from .base import AssetMetadata, ValidationContext
 
 
 class FilesystemContext(ValidationContext):
     """Collects asset metadata using ``os.path`` and filesystem inspection.
 
     Available in all environments (standalone, CI, Unreal).
-    
+
     """
 
     def isAvailable(self) -> bool:
@@ -32,7 +33,7 @@ class FilesystemContext(ValidationContext):
             A :class:`AssetMetadata` instance populated from ``os.path``
             calls.  ``size_bytes`` is ``0`` for paths that are not regular
             files.
-        
+
         """
         name = os.path.basename(asset_path)
         _, ext = os.path.splitext(name)

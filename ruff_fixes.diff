@@ -1,0 +1,1122 @@
+--- py\gt\validator\errors.py
++++ py\gt\validator\errors.py
+@@ -22,5 +22,5 @@
+         ...     asset = loadUnrealAsset("/Game/Meshes/SM_Rock")
+         ... except UnrealAPIError as exc:
+         ...     print(f"Skipping asset: {exc}")
+-    
++
+     """
+
+--- py\gt\validator\reporting\__init__.py
++++ py\gt\validator\reporting\__init__.py
+@@ -1,5 +1,5 @@
+ """Report models and output formatters for validation results."""
++from .formatters import ConsoleFormatter, HTMLFormatter, JSONFormatter
+ from .models import ValidationReport
+-from .formatters import ConsoleFormatter, JSONFormatter, HTMLFormatter
+ 
+-__all__ = ["ValidationReport", "ConsoleFormatter", "JSONFormatter", "HTMLFormatter"]
+\ No newline at end of file
++__all__ = ["ValidationReport", "ConsoleFormatter", "JSONFormatter", "HTMLFormatter"]
+
+--- py\gt\validator\context\__init__.py
++++ py\gt\validator\context\__init__.py
+@@ -1,6 +1,6 @@
+ """ValidationContext adapters for filesystem and Unreal Engine environments."""
+-from .base import ValidationContext, AssetMetadata
++from .base import AssetMetadata, ValidationContext
+ from .filesystem import FilesystemContext
+ from .unreal import UnrealContext
+ 
+-__all__ = ["ValidationContext", "AssetMetadata", "FilesystemContext", "UnrealContext"]
+\ No newline at end of file
++__all__ = ["ValidationContext", "AssetMetadata", "FilesystemContext", "UnrealContext"]
+
+--- py\gt\validator\__init__.py
++++ py\gt\validator\__init__.py
+@@ -13,6 +13,6 @@
+ __author__  = "Technical Artist Course — ELVTR"
+ __all__     = ["ValidationRunner", "Config", "ValidationReport"]
+ 
+-from .runner import ValidationRunner
+ from .config import Config
+ from .reporting.models import ValidationReport
++from .runner import ValidationRunner
+
+--- py\gt\validator\rules\tests\test_host_type_detection.py
++++ py\gt\validator\rules\tests\test_host_type_detection.py
+@@ -42,7 +42,7 @@
+         # Test comparison with string
+         self.assertEqual(HostType.UNREAL, "unreal")
+         self.assertEqual(HostType.UNREAL, HostType.UNREAL)
+-        
++
+         # Test hash
+         self.assertEqual(hash(HostType.UNREAL), hash("unreal"))
+ 
+
+--- py\gt\validator\rules\tests\test_runner_context.py
++++ py\gt\validator\rules\tests\test_runner_context.py
+@@ -8,6 +8,7 @@
+ from unittest.mock import Mock, patch
+ 
+ from gt.runtime import HostType
++
+ from ..base import AbstractRule, Severity
+ from ..registry import registry
+ from ..runner import ValidationRunner
+@@ -31,7 +32,7 @@
+             severity = Severity.ERROR
+             context = HostType.UNREAL
+ 
+-            def __init__(self, config: "Config", context: HostType) -> None:
++            def __init__(self, config: Config, context: HostType) -> None:
+                 super().__init__(config)
+                 self.context = context
+ 
+@@ -53,7 +54,7 @@
+             severity = Severity.ERROR
+             context = HostType.UNREAL
+ 
+-            def __init__(self, config: "Config", context: HostType) -> None:
++            def __init__(self, config: Config, context: HostType) -> None:
+                 super().__init__(config)
+                 self.context = context
+ 
+@@ -62,7 +63,7 @@
+ 
+         registry.discover()
+         runner = ValidationRunner(self.config)
+-        
++
+         # Check that the rule was instantiated with the correct context
+         self.assertEqual(len(runner.rules), 1)
+         self.assertEqual(runner.rules[0].context, HostType.UNREAL)
+@@ -76,7 +77,7 @@
+             severity = Severity.ERROR
+             context = HostType.UNREAL
+ 
+-            def __init__(self, config: "Config", context: HostType) -> None:
++            def __init__(self, config: Config, context: HostType) -> None:
+                 super().__init__(config)
+                 self.context = context
+ 
+@@ -90,7 +91,7 @@
+             severity = Severity.ERROR
+             context = HostType.STANDALONE
+ 
+-            def __init__(self, config: "Config", context: HostType) -> None:
++            def __init__(self, config: Config, context: HostType) -> None:
+                 super().__init__(config)
+                 self.context = context
+ 
+@@ -98,11 +99,11 @@
+                 ...
+ 
+         registry.discover()
+-        
++
+         # Test with UNREAL context
+         runner = ValidationRunner(self.config)
+         self.assertEqual(len(runner.rules), 2)
+-        
++
+         # Test with STANDALONE context
+         runner_standalone = ValidationRunner(self.config)
+         self.assertEqual(len(runner_standalone.rules), 2)
+
+--- py\gt\validator\context\base.py
++++ py\gt\validator\context\base.py
+@@ -32,7 +32,7 @@
+         asset_class: Unreal asset class name (e.g. ``"StaticMesh"``); empty
+             when unknown.
+         properties: Arbitrary key/value metadata returned by the context.
+-    
++
+     """
+     path: str = ""
+     name: str = ""
+@@ -52,7 +52,7 @@
+ 
+     A context knows how to collect :class:`AssetMetadata` for a given path.
+     Concrete implementations: :class:`FilesystemContext`, :class:`UnrealContext`.
+-    
++
+     """
+ 
+     @abstractmethod
+@@ -64,7 +64,7 @@
+ 
+         Returns:
+             A populated :class:`AssetMetadata` instance for the asset.
+-        
++
+         """
+         ...
+ 
+@@ -74,4 +74,4 @@
+         ...
+ 
+     def __repr__(self) -> str:
+-        return f"{type(self).__name__}(available={self.isAvailable()})"
+\ No newline at end of file
++        return f"{type(self).__name__}(available={self.isAvailable()})"
+
+--- py\gt\validator\rules\niagara.py
++++ py\gt\validator\rules\niagara.py
+@@ -6,10 +6,11 @@
+ 
+ from __future__ import annotations
+ 
+-from .base import AbstractRule, Severity, ValidationResult
+ from ..env import loadUnrealAsset
+ from ..errors import UnrealAPIError
+ from ..registry import registry
++from .base import AbstractRule, Severity, ValidationResult
++
+ 
+ @registry.register
+ class NiagaraFixedBoundsRule(AbstractRule):
+@@ -22,7 +23,7 @@
+         name: Rule identifier ``"niagara_fixed_bounds"``.
+         category: Rule category ``"niagara"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "niagara_fixed_bounds"
+     category = "niagara"
+@@ -37,7 +38,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether fixed bounds are set,
+             or a passing result when the check is disabled via config.
+-        
++
+         """
+         if not self.isEnabled():
+             return self._makeResult(
+
+--- py\gt\validator\rules\filesystem.py
++++ py\gt\validator\rules\filesystem.py
+@@ -9,8 +9,8 @@
+ 
+ import os
+ 
++from ..registry import registry
+ from .base import AbstractRule, Severity, ValidationResult
+-from ..registry import registry
+ 
+ 
+ @registry.register
+@@ -21,7 +21,7 @@
+         name: Rule identifier ``"file_size"``.
+         category: Rule category ``"filesystem"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "file_size"
+     category = "filesystem"
+@@ -36,7 +36,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the file size is within
+             the configured limit.  Skipped for non-filesystem paths.
+-        
++
+         """
+         max_mb: float = self.config.get("max_file_size_mb", 50)
+ 
+@@ -74,7 +74,7 @@
+         name: Rule identifier ``"valid_extension"``.
+         category: Rule category ``"filesystem"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "valid_extension"
+     category = "filesystem"
+@@ -89,7 +89,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the extension is in the
+             approved list.  Skipped for non-filesystem paths.
+-        
++
+         """
+         _, ext = os.path.splitext(asset_path)
+         ext = ext.lower()
+
+--- py\gt\validator\rules\base.py
++++ py\gt\validator\rules\base.py
+@@ -18,7 +18,7 @@
+         ERROR: Pipeline should stop; asset is unusable.
+         WARNING: Pipeline can continue; asset needs attention.
+         INFO: Informational note; no action required.
+-    
++
+     """
+     ERROR   = "ERROR"
+     WARNING = "WARNING"
+@@ -41,7 +41,7 @@
+         duration_ms: Time taken to run this check, in milliseconds.
+         asset_class: Unreal asset class name if known, e.g. ``"StaticMesh"``.
+         fix_hint: Brief suggestion for how to resolve a failure.
+-    
++
+     """
+     asset_path:  str
+     rule_name:   str
+@@ -92,7 +92,7 @@
+     severity: Severity = Severity.ERROR
+     context = None  # Type: HostType
+ 
+-    def __init__(self, config: "Config", context) -> None:
++    def __init__(self, config: Config, context) -> None:
+         self.config = config
+         self.context = context
+ 
+@@ -117,7 +117,7 @@
+ 
+         Returns:
+             A :class:`ValidationResult` with pass, fail, or skip status.
+-        
++
+         """
+         ...
+ 
+@@ -142,7 +142,7 @@
+ 
+         Returns:
+             A fully populated :class:`ValidationResult`.
+-        
++
+         """
+         return ValidationResult(
+             asset_path=asset_path,
+@@ -167,7 +167,7 @@
+ 
+         Returns:
+             A :class:`ValidationResult` with ``skipped=True`` and ``passed=True``.
+-        
++
+         """
+         return ValidationResult(
+             asset_path=asset_path,
+
+--- py\gt\validator\rules\bounding_box.py
++++ py\gt\validator\rules\bounding_box.py
+@@ -7,10 +7,10 @@
+ """
+ from __future__ import annotations
+ 
+-from .base import AbstractRule, Severity, ValidationResult
+ from ..env import loadUnrealAsset
+ from ..errors import UnrealAPIError
+ from ..registry import registry
++from .base import AbstractRule, Severity, ValidationResult
+ 
+ 
+ def _readMeshBoundsMetrics(asset, unreal_module) -> tuple[float, float, float, float, float, float]:
+@@ -57,7 +57,7 @@
+         name: Rule identifier ``"bounding_box_extent"``.
+         category: Rule category ``"bounding_box"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name     = "bounding_box_extent"
+     category = "bounding_box"
+@@ -72,7 +72,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the bounding box extent
+             is within the configured limit.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+@@ -127,7 +127,7 @@
+         name: Rule identifier ``"bounding_box_origin"``.
+         category: Rule category ``"bounding_box"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name     = "bounding_box_origin"
+     category = "bounding_box"
+@@ -142,7 +142,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the mesh center
+             is within the configured offset limit from the world origin.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+
+--- py\gt\validator\env.py
++++ py\gt\validator\env.py
+@@ -16,7 +16,7 @@
+ 
+ """
+ import logging
+-from typing import Any, TYPE_CHECKING
++from typing import TYPE_CHECKING, Any
+ 
+ from .errors import UnrealAPIError
+ 
+@@ -94,8 +94,7 @@
+ 
+ 
+ def getSelectedAssets() -> list:
+-    """
+-    Return the list of assets currently selected in the Content Browser.
++    """Return the list of assets currently selected in the Content Browser.
+ 
+     Returns an empty list when running outside Unreal or when no assets are
+     selected.  Inside the Editor, each element is an ``unreal.Object``.
+@@ -195,7 +194,7 @@
+     Raises:
+         ImportError: If Unreal Engine is not available in the current
+             Python environment.
+-    
++
+     """
+     if not HAS_UNREAL:
+         raise ImportError(
+@@ -221,7 +220,7 @@
+     Raises:
+         UnrealAPIError: If Unreal is unavailable, if the API call raises,
+             or if the returned asset is ``None``.
+-    
++
+     """
+     if not HAS_UNREAL:
+         raise UnrealAPIError(
+
+--- py\gt\validator\entry_points\unreal\run_validation.py
++++ py\gt\validator\entry_points\unreal\run_validation.py
+@@ -28,7 +28,6 @@
+ from ...reporting.models import ValidationReport
+ from ...runner import ValidationRunner
+ 
+-
+ # ── Logging ───────────────────────────────────────────────────────────────── #
+ 
+ def _log(message: str) -> None:
+@@ -189,7 +188,7 @@
+     except UnrealAPIError as exc:
+         _logError(f"[Validator] Unreal API error: {exc}")
+         raise
+-    
++
+     if report:
+         _outputReport(
+             report,
+
+--- py\gt\validator\rules\static_mesh.py
++++ py\gt\validator\rules\static_mesh.py
+@@ -8,10 +8,10 @@
+ """
+ from __future__ import annotations
+ 
+-from .base import AbstractRule, Severity, ValidationResult
+ from ..env import loadUnrealAsset
+ from ..errors import UnrealAPIError
+ from ..registry import registry
++from .base import AbstractRule, Severity, ValidationResult
+ 
+ 
+ @registry.register
+@@ -22,7 +22,7 @@
+         name: Rule identifier ``"static_mesh_lod_count"``.
+         category: Rule category ``"static_mesh"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "static_mesh_lod_count"
+     category = "static_mesh"
+@@ -37,7 +37,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the LOD count is within
+             the configured minimum and maximum bounds.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+@@ -87,7 +87,7 @@
+         name: Rule identifier ``"static_mesh_material_slots"``.
+         category: Rule category ``"static_mesh"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name     = "static_mesh_material_slots"
+     category = "static_mesh"
+@@ -102,7 +102,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the number of material
+             slots is within the configured limit.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+@@ -147,7 +147,7 @@
+         name: Rule identifier ``"static_mesh_bounds"``.
+         category: Rule category ``"static_mesh"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name     = "static_mesh_bounds"
+     category = "static_mesh"
+@@ -162,7 +162,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the bounding box extent
+             is within the configured limit.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+
+--- py\gt\validator\rules\lod.py
++++ py\gt\validator\rules\lod.py
+@@ -7,10 +7,10 @@
+ """
+ from __future__ import annotations
+ 
+-from .base import AbstractRule, Severity, ValidationResult
+ from ..env import loadUnrealAsset
+ from ..errors import UnrealAPIError
+ from ..registry import registry
++from .base import AbstractRule, Severity, ValidationResult
+ 
+ 
+ def _getSkeletalMeshLodCount(asset, unreal_module) -> int:
+@@ -62,7 +62,7 @@
+         name: Rule identifier ``"lod_count"``.
+         category: Rule category ``"lod"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "lod_count"
+     category = "lod"
+@@ -77,7 +77,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the LOD count is within
+             the configured minimum and maximum bounds.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+@@ -132,7 +132,7 @@
+         name: Rule identifier ``"lod_screen_size_ratio"``.
+         category: Rule category ``"lod"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name     = "lod_screen_size_ratio"
+     category = "lod"
+@@ -147,7 +147,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether screen size values
+             decrease correctly across all LOD levels.
+-        
++
+         """
+         try:
+             asset = loadUnrealAsset(asset_path)
+@@ -197,7 +197,7 @@
+                 )
+             screen_sizes = screen_sizes[:lod_count]
+ 
+-            min_ratio: float = self.config.get("min_lod_screen_size_ratio", 0.5)
++            self.config.get("min_lod_screen_size_ratio", 0.5)
+             violations = []
+             for i in range(1, len(screen_sizes)):
+                 prev = screen_sizes[i - 1]
+
+--- py\gt\validator\allowlist.py
++++ py\gt\validator\allowlist.py
+@@ -24,7 +24,7 @@
+ from __future__ import annotations
+ 
+ import logging
+-from datetime import date, datetime
++from datetime import datetime
+ from typing import TYPE_CHECKING
+ 
+ if TYPE_CHECKING:
+@@ -43,7 +43,7 @@
+         author: Username or identifier of the approver.
+         created_at: Timestamp when the entry was added.
+         expires_at: Optional timestamp when the entry expires.
+-    
++
+     """
+ 
+     def __init__(self, rule: str, asset: str, reason: str = "",
+@@ -59,7 +59,7 @@
+             created_at: Timestamp when the entry was added.
+             expires_at: Optional expiry date string in ``YYYY-MM-DD`` format.
+                 Entries past this date are treated as expired.
+-        
++
+         """
+         self.rule = rule
+         self.asset = asset
+@@ -72,7 +72,7 @@
+         """Return True if this entry has passed its expiry date."""
+         if not self.expires_at:
+             return False
+-            
++
+         try:
+             expire_date = datetime.fromisoformat(self.expires_at)
+             return datetime.now() > expire_date
+@@ -104,20 +104,20 @@
+         manager = AllowlistManager(config)
+         if manager.isAllowed("material_blend_mode", "/Game/M_HeroSkin"):
+             return self._makeResult(asset_path, passed=True, message="Allowlisted.")
+-    
++
+     """
+ 
+-    def __init__(self, config: "Config") -> None:
++    def __init__(self, config: Config) -> None:
+         """Initialise the manager and load entries from config.
+ 
+         Args:
+             config: Loaded :class:`~validator.config.Config` instance.
+                 The ``allowlist`` key must contain a list of entry dicts.
+-        
++
+         """
+         self.entries: list[AllowlistEntry] = []
+         self.config = config
+-        
++
+         # Load allowlist from config
+         raw_entries: list[dict] = config.get("allowlist", [])
+         for raw in raw_entries:
+@@ -158,7 +158,7 @@
+         Returns:
+             ``True`` when an active (non-expired) entry matches, ``False``
+             otherwise.
+-        
++
+         """
+         for entry in self.entries:
+             if entry.rule == rule_name and entry.asset == asset_path:
+@@ -174,7 +174,7 @@
+ 
+         Returns:
+             The matching entry, or ``None`` if no active entry is found.
+-        
++
+         """
+         for entry in self.entries:
+             if entry.rule == rule_name and entry.asset == asset_path:
+
+--- py\gt\validator\reporting\models.py
++++ py\gt\validator\reporting\models.py
+@@ -1,10 +1,9 @@
+ """ValidationReport dataclass with filtering and statistics helpers."""
+ from __future__ import annotations
+ 
+-from dataclasses import dataclass, field
+-from typing import Optional
++from dataclasses import dataclass
+ 
+-from ..rules.base import ValidationResult, Severity
++from ..rules.base import Severity, ValidationResult
+ 
+ 
+ @dataclass
+@@ -18,7 +17,7 @@
+         rule_count: Number of rules that ran.
+         duration_ms: Wall-clock time for the full run in milliseconds.
+         tool_version: Framework version string.
+-    
++
+     """
+     results:      list[ValidationResult]
+     asset_count:  int   = 0
+@@ -93,7 +92,7 @@
+         Returns:
+             A list of :class:`~validator.rules.base.ValidationResult` objects
+             whose severity matches.
+-        
++
+         """
+         return [r for r in self.results if r.severity == severity]
+ 
+@@ -106,7 +105,7 @@
+         Returns:
+             A list of :class:`~validator.rules.base.ValidationResult` objects
+             whose category matches.
+-        
++
+         """
+         return [r for r in self.results if r.category == category]
+ 
+
+--- py\gt\validator\rules\overdraw.py
++++ py\gt\validator\rules\overdraw.py
+@@ -4,9 +4,9 @@
+ materials using translucent or additive blend modes because they are
+ common overdraw risk indicators.
+ """
++from ..env import HAS_UNREAL
++from ..registry import registry
+ from .base import AbstractRule, Severity, ValidationResult
+-from ..registry import registry
+-from ..env import HAS_UNREAL
+ 
+ 
+ def _getMaterialBlendMode(asset) -> str:
+
+--- py\gt\validator\context\filesystem.py
++++ py\gt\validator\context\filesystem.py
+@@ -8,14 +8,14 @@
+ 
+ import os
+ 
+-from .base import ValidationContext, AssetMetadata
++from .base import AssetMetadata, ValidationContext
+ 
+ 
+ class FilesystemContext(ValidationContext):
+     """Collects asset metadata using ``os.path`` and filesystem inspection.
+ 
+     Available in all environments (standalone, CI, Unreal).
+-    
++
+     """
+ 
+     def isAvailable(self) -> bool:
+@@ -32,7 +32,7 @@
+             A :class:`AssetMetadata` instance populated from ``os.path``
+             calls.  ``size_bytes`` is ``0`` for paths that are not regular
+             files.
+-        
++
+         """
+         name = os.path.basename(asset_path)
+         _, ext = os.path.splitext(name)
+@@ -47,4 +47,4 @@
+             size_bytes=size,
+             asset_class="",
+             properties={},
+-        )
+\ No newline at end of file
++        )
+
+--- py\gt\validator\rules\texture.py
++++ py\gt\validator\rules\texture.py
+@@ -7,10 +7,9 @@
+ """
+ from __future__ import annotations
+ 
+-from .base import AbstractRule, Severity, ValidationResult
+ from ..env import loadUnrealAsset
+-from ..errors import UnrealAPIError
+ from ..registry import registry
++from .base import AbstractRule, Severity, ValidationResult
+ 
+ 
+ @registry.register
+@@ -29,7 +28,7 @@
+     severity = Severity.ERROR
+     context = None  # Type: HostType
+ 
+-    def __init__(self, config: "Config", context) -> None:
++    def __init__(self, config: Config, context) -> None:
+         super().__init__(config)
+         self.context = context
+ 
+@@ -93,14 +92,14 @@
+         name: Rule identifier ``"texture_compression"``.
+         category: Rule category ``"texture"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name = "texture_compression"
+     category = "texture"
+     severity = Severity.WARNING
+     context = None  # Type: HostType
+ 
+-    def __init__(self, config: "Config", context) -> None:
++    def __init__(self, config: Config, context) -> None:
+         super().__init__(config)
+         self.context = context
+ 
+
+--- py\gt\validator\reporting\formatters.py
++++ py\gt\validator\reporting\formatters.py
+@@ -18,12 +18,10 @@
+ 
+ import json
+ import re
+-
+ from datetime import datetime
+ 
++from ..rules.base import Severity, ValidationResult
+ from .models import ValidationReport
+-
+-from ..rules.base import Severity, ValidationResult
+ 
+ # ── ANSI codes ────────────────────────────────────────────────────────────── #
+ _RESET  = "\033[0m"
+@@ -55,6 +53,7 @@
+ 
+     Args:
+         results: Flat list of ValidationResult objects.
++
+     Returns:
+         Ordered dict mapping asset path → list of results for that asset.
+ 
+@@ -339,7 +338,7 @@
+         assets_html  = self._renderAssets(report)
+         css          = self._css()
+         now          = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+-        
++
+         html = f"""<!DOCTYPE html>
+ <html lang="en">
+ <head>
+
+--- py\gt\validator\rules\naming.py
++++ py\gt\validator\rules\naming.py
+@@ -11,8 +11,8 @@
+ import os
+ import re
+ 
++from ..registry import registry
+ from .base import AbstractRule, Severity, ValidationResult
+-from ..registry import registry
+ 
+ 
+ @registry.register
+@@ -23,7 +23,7 @@
+         name: Rule identifier ``"naming_convention"``.
+         category: Rule category ``"naming"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "naming_convention"
+     category = "naming"
+@@ -38,7 +38,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the asset name matches
+             the configured pattern.
+-        
++
+         """
+         # For Unreal content paths (/Game/...), extract the asset name from the path.
+         # For filesystem paths, use the filename stem as before.
+@@ -77,7 +77,7 @@
+         name: Rule identifier ``"prefix_convention"``.
+         category: Rule category ``"naming"``.
+         severity: :attr:`Severity.ERROR`.
+-    
++
+     """
+     name     = "prefix_convention"
+     category = "naming"
+@@ -92,7 +92,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the file uses the correct
+             prefix for its extension.
+-        
++
+         """
+         # For Unreal content paths (/Game/...), extract the asset name from the path.
+         # For filesystem paths, use the filename stem as before.
+@@ -109,7 +109,7 @@
+             filename = os.path.basename(asset_path)
+             stem, ext = os.path.splitext(filename)
+             ext = ext.lower()
+-            
++
+             # Only check prefix requirement if we have an extension (filesystem path)
+             required_prefixes: dict = self.config.get("required_prefixes", {})
+             for prefix, extensions in required_prefixes.items():
+@@ -158,7 +158,7 @@
+         name: Rule identifier ``"filename_length"``.
+         category: Rule category ``"naming"``.
+         severity: :attr:`Severity.WARNING`.
+-    
++
+     """
+     name     = "filename_length"
+     category = "naming"
+@@ -173,7 +173,7 @@
+         Returns:
+             A :class:`ValidationResult` indicating whether the filename length
+             is within the configured limit.
+-        
++
+         """
+         filename = os.path.basename(asset_path)
+         max_len: int = self.config.get("max_filename_length", 64)
+
+--- py\gt\validator\registry.py
++++ py\gt\validator\registry.py
+@@ -21,10 +21,10 @@
+ import logging
+ import os
+ import pkgutil
+-from typing import Type, TYPE_CHECKING
++from typing import TYPE_CHECKING
+ 
+ if TYPE_CHECKING:
+-    from .rules.base import AbstractRule, Severity
++    pass
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -49,16 +49,16 @@
+ 
+     """
+ 
+-    _instance: "RuleRegistry | None" = None
+-    _rules: "dict[str, Type]" = {}
++    _instance: RuleRegistry | None = None
++    _rules: dict[str, type] = {}
+     _discovered: bool = False
+ 
+-    def __new__(cls) -> "RuleRegistry":
++    def __new__(cls) -> RuleRegistry:
+         if cls._instance is None:
+             cls._instance = super().__new__(cls)
+         return cls._instance
+ 
+-    def register(self, cls: "Type") -> "Type":
++    def register(self, cls: type) -> type:
+         """Class decorator — registers a rule class.
+ 
+         Reads ``name``, ``category``, and ``severity`` directly from the class.
+@@ -172,7 +172,7 @@
+         category: str | None = None,
+         severity=None,
+         context=None,
+-    ) -> list[Type]:
++    ) -> list[type]:
+         """Return registered rule classes, optionally filtered.
+ 
+         Args:
+@@ -194,7 +194,7 @@
+             rules = [r for r in rules if getattr(r, 'context', None) == context]
+         return rules
+ 
+-    def listRules(self) -> dict[str, Type]:
++    def listRules(self) -> dict[str, type]:
+         """Return a copy of the rules dict {name: class}."""
+         return dict(self._rules)
+ 
+
+--- py\gt\validator\rules\material.py
++++ py\gt\validator\rules\material.py
+@@ -13,13 +13,12 @@
+ from gt.runtime import HostType
+ 
+ if TYPE_CHECKING:
+-    import unreal  # noqa: PLC0415
++    pass  # noqa: PLC0415
+ 
+-from .base import AbstractRule, Severity, ValidationResult
+ from ..config import Config
+ from ..env import loadUnrealAsset
+-from ..errors import UnrealAPIError
+ from ..registry import registry
++from .base import AbstractRule, Severity, ValidationResult
+ 
+ 
+ @registry.register
+@@ -41,7 +40,7 @@
+     severity = Severity.WARNING
+     context = HostType.UNREAL
+ 
+-    def __init__(self, config: "Config", context: HostType) -> None:
++    def __init__(self, config: Config, context: HostType) -> None:
+         super().__init__(config, context)
+ 
+     def validate(self, asset_path: str) -> ValidationResult:
+@@ -111,7 +110,7 @@
+     severity = Severity.INFO
+     context = HostType.UNREAL
+ 
+-    def __init__(self, config: "Config", context: HostType) -> None:
++    def __init__(self, config: Config, context: HostType) -> None:
+         super().__init__(config, context)
+ 
+     def validate(self, asset_path: str) -> ValidationResult:
+@@ -187,7 +186,7 @@
+         "ThinTranslucent",
+     )
+ 
+-    def __init__(self, config: "Config", context: HostType) -> None:
++    def __init__(self, config: Config, context: HostType) -> None:
+         super().__init__(config, context)
+ 
+     def validate(self, asset_path: str) -> ValidationResult:
+
+--- py\gt\validator\config.py
++++ py\gt\validator\config.py
+@@ -37,10 +37,10 @@
+     },
+     "valid_extensions": [
+         ".uasset",
+-        ".umap", 
+-        ".fbx", 
+-        ".png", 
+-        ".tga", 
++        ".umap",
++        ".fbx",
++        ".png",
++        ".tga",
+         ".exr",
+         ".mp4"],
+     "log_level": "WARNING",
+@@ -104,7 +104,7 @@
+ 
+     Merges built-in defaults, an optional JSON file, and environment variable
+     overrides into a single dict-like object.
+-    
++
+     """
+ 
+     def __init__(self, config_path: str | None = None, validate: bool = True) -> None:
+@@ -120,7 +120,7 @@
+             ValueError: If ``config_path`` is given but the file does not
+                 exist, the JSON is malformed, or (with ``validate=True``) any
+                 config value has the wrong type.
+-        
++
+         """
+         self._data: dict[str, Any] = dict(DEFAULTS)
+ 
+@@ -155,12 +155,12 @@
+         Raises:
+             ValueError: If the file does not exist, is not a JSON object, or
+                 contains malformed JSON.
+-        
++
+         """
+         if not os.path.isfile(path):
+             raise ValueError(f"Config file not found: '{path}'")
+         try:
+-            with open(path, "r", encoding="utf-8") as fh:
++            with open(path, encoding="utf-8") as fh:
+                 data = json.load(fh)
+             if not isinstance(data, dict):
+                 raise ValueError(f"Config file must be a JSON object: '{path}'")
+@@ -179,7 +179,7 @@
+         Example:
+             ``VALIDATOR_MAX_FILE_SIZE_MB=100`` sets ``max_file_size_mb=100``
+             (coerced to ``int``).
+-        
++
+         """
+         result: dict[str, Any] = {}
+         prefix = "VALIDATOR_"
+@@ -203,7 +203,7 @@
+ 
+         Returns:
+             The coerced value, or the original string if coercion fails.
+-        
++
+         """
+         default = DEFAULTS.get(key)
+         if default is None:
+@@ -250,7 +250,7 @@
+ 
+         Returns:
+             The stored value for *key*, or *default*.
+-        
++
+         """
+         return self._data.get(key, default)
+ 
+
+--- py\gt\validator\context\unreal.py
++++ py\gt\validator\context\unreal.py
+@@ -7,10 +7,9 @@
+ from __future__ import annotations
+ 
+ import logging
+-from typing import Any
+ 
+-from .base import ValidationContext, AssetMetadata
+ from ..env import HAS_UNREAL
++from .base import AssetMetadata, ValidationContext
+ 
+ logger = logging.getLogger(__name__)
+ 
+
+--- py\gt\validator\cli.py
++++ py\gt\validator\cli.py
+@@ -28,12 +28,11 @@
+ import sys
+ 
+ from .config import Config
++from .env import HAS_UNREAL
++from .reporting.formatters import ConsoleFormatter, HTMLFormatter, JSONFormatter
++from .reporting.models import ValidationReport
+ from .rules.base import Severity
+ from .runner import ValidationRunner
+-from .reporting.formatters import ConsoleFormatter, JSONFormatter, HTMLFormatter
+-from .reporting.models import ValidationReport
+-from .env import HAS_UNREAL
+-
+ 
+ _VERSION = "1.0.0"
+ 
+@@ -183,7 +182,7 @@
+     env["VALIDATOR_SESSION_DIR"] = str(Path(__file__).parents[1])
+     env.setdefault("VALIDATOR_MAX_WORKERS", "1")  # Unreal thread safety default
+ 
+-    print(f"[CLI] Dispatching to Unreal Editor...")
++    print("[CLI] Dispatching to Unreal Editor...")
+     print(f"[CLI]   Unreal cmd : {unreal_cmd}")
+     print(f"[CLI]   Project    : {uproject}")
+     print(f"[CLI]   Script     : {dispatch_script}")
+@@ -249,7 +248,7 @@
+ 
+     Returns:
+         A configured :class:`argparse.ArgumentParser` instance.
+-    
++
+     """
+     parser = argparse.ArgumentParser(
+         prog="validator",
+@@ -274,7 +273,7 @@
+   0   all checks passed (or only warnings/infos)
+   1   at least one ERROR-severity failure
+   2   configuration or argument error
+-  
++
+ """,
+     )
+     parser.add_argument(
+@@ -371,7 +370,7 @@
+     Returns:
+         ``0`` if all checks passed, ``1`` if any ERROR-severity rule failed,
+         ``2`` if there was a configuration or argument error.
+-    
++
+     """
+     import logging
+ 
+
+Would fix 133 errors.

@@ -13,13 +13,14 @@ import concurrent.futures
 import logging
 import os
 import time
-from typing import Callable, Iterator, Type
+from collections.abc import Callable, Iterator
+
+from gt.runtime import HostType
 
 from .config import Config
 from .registry import registry
-from .rules.base import AbstractRule, ValidationResult, Severity
 from .reporting.models import ValidationReport
-from gt.runtime import HostType
+from .rules.base import AbstractRule, Severity, ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class ValidationRunner:
     Discovers rules from the registry, instantiates them with the provided
     configuration, and runs them against assets in a directory — optionally
     using a thread pool for parallel processing.
-    
+
     """
 
     def __init__(
@@ -38,7 +39,7 @@ class ValidationRunner:
         config: Config,
         category: str | None = None,
         severity: Severity | None = None,
-        rules: list[Type[AbstractRule]] | None = None,
+        rules: list[type[AbstractRule]] | None = None,
         context=None,
         allowlist=None,
         max_workers: int | None = None,
@@ -62,13 +63,13 @@ class ValidationRunner:
         self.rules     = rules
         self.context   = context
         self.allowlist = allowlist
-        
+
         # Set default max_workers if not provided
         if max_workers is None:
             max_workers = int(os.environ.get("VALIDATOR_MAX_WORKERS", "0"))
             if max_workers == 0:
                 max_workers = os.cpu_count() or 4
-                
+
         self.max_workers = max_workers
 
         # Discover and instantiate rules
@@ -82,7 +83,7 @@ class ValidationRunner:
                     logger.warning(
                         "[ValidationRunner] No rules matched "
                         "(category=%r, severity=%r). Registered: %s",
-                        category, severity, list(registry.listRules().keys()).
+                        category, severity, list(registry.listRules().keys())
                     )
                 # Get current context for context-aware rules
                 current_context = HostType.UNREAL if context is None else context
@@ -101,15 +102,15 @@ class ValidationRunner:
 
         Returns:
             A list of :class:`ValidationResult` objects, one per rule.
-        
+
         """
         results: list[ValidationResult] = []
-        
+
         # Check if asset is allowlisted
         if self.allowlist and self.allowlist.isAllowed(self.category or "", asset_path):
             logger.debug(f"[ValidationRunner] Asset {asset_path} is allowlisted")
             return [self._makeSkippedResult(asset_path, "Asset is allowlisted")]
-            
+
         for rule in self.rules:
             t0 = time.perf_counter()
             try:
@@ -149,7 +150,7 @@ class ValidationRunner:
 
         Returns:
             A failed :class:`ValidationResult` compatible with report formatters.
-        
+
         """
         rule_name = getattr(rule, "name", "") or type(rule).__name__
         category = getattr(rule, "category", "") or "runtime"
@@ -197,7 +198,7 @@ class ValidationRunner:
         from . import __version__
         t0 = time.perf_counter()
         all_results: list[ValidationResult] = []
-        
+
         # Process assets in parallel if max_workers > 1
         if self.max_workers > 1:
             try:
@@ -224,7 +225,7 @@ class ValidationRunner:
             # Sequential processing
             for asset_path in asset_paths:
                 all_results.extend(self.validateAsset(asset_path))
-                
+
         duration = (time.perf_counter() - t0) * 1000
         return ValidationReport(
             results=all_results,
@@ -264,7 +265,7 @@ class ValidationRunner:
         t0 = time.perf_counter()
         seen: set[str] = set()
         assets: list[str] = []
-        
+
         # Collect unique assets from folders
         for folder in folders:
             try:
@@ -274,7 +275,7 @@ class ValidationRunner:
                         assets.append(asset_path)
             except Exception as e:
                 logger.error(f"[Runner] Failed to collect assets from {folder}: {e}")
-                
+
         self.last_run_cancelled = False
         hooks_enabled = (
             slow_task is not None
@@ -309,7 +310,7 @@ class ValidationRunner:
         # Process assets
         all_results: list[ValidationResult] = []
         processed_assets = 0
-        
+
         if self.max_workers == 1 or hooks_enabled:
             for asset_path in assets:
                 if _is_cancelled():
@@ -392,18 +393,18 @@ class ValidationRunner:
 
         Returns:
             A :class:`ValidationReport` aggregating all rule results.
-        
+
         """
         from . import __version__
         t0 = time.perf_counter()
-        
+
         # Collect assets from directory
         try:
             assets = list(self._iterAssets(directory))
         except Exception as e:
             logger.error(f"[Runner] Failed to collect assets from {directory}: {e}")
             raise
-            
+
         self.last_run_cancelled = False
         hooks_enabled = (
             slow_task is not None
@@ -438,7 +439,7 @@ class ValidationRunner:
         # Process assets
         all_results: list[ValidationResult] = []
         processed_assets = 0
-        
+
         if self.max_workers == 1 or hooks_enabled:
             for asset_path in assets:
                 if _is_cancelled():
@@ -508,7 +509,7 @@ class ValidationRunner:
         Raises:
             ValueError: If directory is neither a valid filesystem directory
                 nor a resolvable Unreal content path.
-        
+
         """
         from .env import HAS_UNREAL
 

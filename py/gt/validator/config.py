@@ -16,6 +16,7 @@ Example::
     config["naming_pattern"]                  # raises KeyError if missing
 
 """
+
 from __future__ import annotations
 
 import json
@@ -35,14 +36,7 @@ DEFAULTS: dict[str, Any] = {
         "T_": [".png", ".tga", ".exr"],
         "M_": [".uasset"],
     },
-    "valid_extensions": [
-        ".uasset",
-        ".umap", 
-        ".fbx", 
-        ".png", 
-        ".tga", 
-        ".exr",
-        ".mp4"],
+    "valid_extensions": [".uasset", ".umap", ".fbx", ".png", ".tga", ".exr", ".mp4"],
     "log_level": "WARNING",
     "min_lod_count": 1,
     "max_lod_count": 8,
@@ -56,8 +50,8 @@ DEFAULTS: dict[str, Any] = {
     "max_niagara_spawn_rate": 10000,
     "allow_gpu_simulation": True,
     "require_niagara_fixed_bounds": True,
-    "require_overdraw_heuristic":   True,
-    "max_translucent_materials":    2,
+    "require_overdraw_heuristic": True,
+    "max_translucent_materials": 2,
     "allowlist": [],
     "report_format": "console",
     "filter_severity": None,
@@ -87,8 +81,8 @@ CONFIG_SCHEMA: dict[str, type | tuple] = {
     "max_niagara_spawn_rate": int,
     "allow_gpu_simulation": bool,
     "require_niagara_fixed_bounds": bool,
-    "require_overdraw_heuristic":   bool,
-    "max_translucent_materials":    int,
+    "require_overdraw_heuristic": bool,
+    "max_translucent_materials": int,
     "allowlist": list,
     "report_format": str,
     "filter_severity": (str, type(None)),
@@ -104,7 +98,7 @@ class Config:
 
     Merges built-in defaults, an optional JSON file, and environment variable
     overrides into a single dict-like object.
-    
+
     """
 
     def __init__(self, config_path: str | None = None, validate: bool = True) -> None:
@@ -120,7 +114,7 @@ class Config:
             ValueError: If ``config_path`` is given but the file does not
                 exist, the JSON is malformed, or (with ``validate=True``) any
                 config value has the wrong type.
-        
+
         """
         self._data: dict[str, Any] = dict(DEFAULTS)
 
@@ -155,12 +149,12 @@ class Config:
         Raises:
             ValueError: If the file does not exist, is not a JSON object, or
                 contains malformed JSON.
-        
+
         """
         if not os.path.isfile(path):
             raise ValueError(f"Config file not found: '{path}'")
         try:
-            with open(path, "r", encoding="utf-8") as fh:
+            with open(path, encoding="utf-8") as fh:
                 data = json.load(fh)
             if not isinstance(data, dict):
                 raise ValueError(f"Config file must be a JSON object: '{path}'")
@@ -179,14 +173,14 @@ class Config:
         Example:
             ``VALIDATOR_MAX_FILE_SIZE_MB=100`` sets ``max_file_size_mb=100``
             (coerced to ``int``).
-        
+
         """
         result: dict[str, Any] = {}
         prefix = "VALIDATOR_"
         for env_key, raw_value in os.environ.items():
             if not env_key.startswith(prefix):
                 continue
-            config_key = env_key[len(prefix):].lower()
+            config_key = env_key[len(prefix) :].lower()
             if config_key in DEFAULTS:
                 coerced = self._coerce(config_key, raw_value)
                 if coerced is not None:
@@ -203,7 +197,7 @@ class Config:
 
         Returns:
             The coerced value, or the original string if coercion fails.
-        
+
         """
         default = DEFAULTS.get(key)
         if default is None:
@@ -218,9 +212,7 @@ class Config:
             if isinstance(default, (list, dict)):
                 return json.loads(raw)
         except (ValueError, json.JSONDecodeError) as exc:
-            logger.warning(
-                "[Config] Could not coerce env var '%s'=%r: %s", key, raw, exc
-            )
+            logger.warning("[Config] Could not coerce env var '%s'=%r: %s", key, raw, exc)
         return raw
 
     def _validateSchema(self) -> None:
@@ -232,13 +224,11 @@ class Config:
             value = self._data[key]
             if not isinstance(value, expected_type):
                 errors.append(
-                    f"  '{key}': expected {expected_type}, "
-                    f"got {type(value).__name__} = {value!r}"
+                    f"  '{key}': expected {expected_type}, got {type(value).__name__} = {value!r}"
                 )
         if errors:
             raise ValueError(
-                "Config validation failed — fix these issues before running:\n"
-                + "\n".join(errors)
+                "Config validation failed — fix these issues before running:\n" + "\n".join(errors)
             )
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -250,15 +240,18 @@ class Config:
 
         Returns:
             The stored value for *key*, or *default*.
-        
+
         """
         return self._data.get(key, default)
 
     def __getitem__(self, key: str) -> Any:
+        """Return the stored value for *key*, raising ``KeyError`` if missing."""
         return self._data[key]
 
     def __contains__(self, key: str) -> bool:
+        """Return ``True`` if *key* is present in the config data."""
         return key in self._data
 
     def __repr__(self) -> str:
+        """Return a string representation of the config."""
         return f"Config(keys={list(self._data.keys())})"

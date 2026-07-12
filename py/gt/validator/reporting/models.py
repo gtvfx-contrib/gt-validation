@@ -1,10 +1,10 @@
 """ValidationReport dataclass with filtering and statistics helpers."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
-from ..rules.base import ValidationResult, Severity
+from ..rules.base import Severity, ValidationResult
 
 
 @dataclass
@@ -18,13 +18,14 @@ class ValidationReport:
         rule_count: Number of rules that ran.
         duration_ms: Wall-clock time for the full run in milliseconds.
         tool_version: Framework version string.
-    
+
     """
-    results:      list[ValidationResult]
-    asset_count:  int   = 0
-    rule_count:   int   = 0
-    duration_ms:  float = 0.0
-    tool_version: str   = ""
+
+    results: list[ValidationResult]
+    asset_count: int = 0
+    rule_count: int = 0
+    duration_ms: float = 0.0
+    tool_version: str = ""
 
     @property
     def total(self) -> int:
@@ -50,7 +51,8 @@ class ValidationReport:
     def errors(self) -> int:
         """Number of ERROR-severity failures."""
         return sum(
-            1 for r in self.results
+            1
+            for r in self.results
             if not r.passed and not r.skipped and r.severity == Severity.ERROR
         )
 
@@ -58,7 +60,8 @@ class ValidationReport:
     def warnings(self) -> int:
         """Number of WARNING-severity failures."""
         return sum(
-            1 for r in self.results
+            1
+            for r in self.results
             if not r.passed and not r.skipped and r.severity == Severity.WARNING
         )
 
@@ -66,7 +69,8 @@ class ValidationReport:
     def infos(self) -> int:
         """Number of INFO-severity failures."""
         return sum(
-            1 for r in self.results
+            1
+            for r in self.results
             if not r.passed and not r.skipped and r.severity == Severity.INFO
         )
 
@@ -93,7 +97,7 @@ class ValidationReport:
         Returns:
             A list of :class:`~validator.rules.base.ValidationResult` objects
             whose severity matches.
-        
+
         """
         return [r for r in self.results if r.severity == severity]
 
@@ -106,7 +110,7 @@ class ValidationReport:
         Returns:
             A list of :class:`~validator.rules.base.ValidationResult` objects
             whose category matches.
-        
+
         """
         return [r for r in self.results if r.category == category]
 
