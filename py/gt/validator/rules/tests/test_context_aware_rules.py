@@ -5,6 +5,7 @@ This module contains tests for the context-aware rule system, including:
 - Registry context filtering
 - Rule instantiation with context
 """
+
 from __future__ import annotations
 
 import unittest
@@ -28,6 +29,7 @@ class TestContextAwareRules(unittest.TestCase):
 
     def test_rule_with_context_attribute(self) -> None:
         """Test that a rule can have a context attribute."""
+
         @registry.register
         class TestRule(AbstractRule):
             name = "test_rule"
@@ -39,13 +41,13 @@ class TestContextAwareRules(unittest.TestCase):
                 super().__init__(config)
                 self.context = context
 
-            def validate(self, asset_path: str) -> AbstractRule:
-                ...
+            def validate(self, asset_path: str) -> AbstractRule: ...
 
         self.assertEqual(TestRule.context, HostType.UNREAL)
 
     def test_registry_filters_by_context(self) -> None:
         """Test that registry filters rules by context."""
+
         @registry.register
         class UnrealRule(AbstractRule):
             name = "unreal_rule"
@@ -57,8 +59,7 @@ class TestContextAwareRules(unittest.TestCase):
                 super().__init__(config)
                 self.context = context
 
-            def validate(self, asset_path: str) -> AbstractRule:
-                ...
+            def validate(self, asset_path: str) -> AbstractRule: ...
 
         @registry.register
         class StandaloneRule(AbstractRule):
@@ -71,8 +72,7 @@ class TestContextAwareRules(unittest.TestCase):
                 super().__init__(config)
                 self.context = context
 
-            def validate(self, asset_path: str) -> AbstractRule:
-                ...
+            def validate(self, asset_path: str) -> AbstractRule: ...
 
         registry.discover()
 
@@ -92,6 +92,7 @@ class TestContextAwareRules(unittest.TestCase):
 
     def test_registry_getRules_accepts_context_parameter(self) -> None:
         """Test that getRules accepts context parameter."""
+
         @registry.register
         class TestRule(AbstractRule):
             name = "test_rule"
@@ -103,8 +104,7 @@ class TestContextAwareRules(unittest.TestCase):
                 super().__init__(config)
                 self.context = context
 
-            def validate(self, asset_path: str) -> AbstractRule:
-                ...
+            def validate(self, asset_path: str) -> AbstractRule: ...
 
         registry.discover()
 
@@ -114,6 +114,7 @@ class TestContextAwareRules(unittest.TestCase):
 
     def test_rule_instantiation_with_context(self) -> None:
         """Test that rules can be instantiated with context parameter."""
+
         @registry.register
         class TestRule(AbstractRule):
             name = "test_rule"
@@ -125,8 +126,7 @@ class TestContextAwareRules(unittest.TestCase):
                 super().__init__(config)
                 self.context = context
 
-            def validate(self, asset_path: str) -> AbstractRule:
-                ...
+            def validate(self, asset_path: str) -> AbstractRule: ...
 
         registry.discover()
         rule = TestRule(self.config, HostType.UNREAL)

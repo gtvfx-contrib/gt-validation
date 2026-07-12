@@ -7,6 +7,7 @@ The number of worker threads is controlled by the ``max_workers`` constructor
 argument or the ``VALIDATOR_MAX_WORKERS`` environment variable.
 
 """
+
 from __future__ import annotations
 
 import concurrent.futures
@@ -57,11 +58,11 @@ class ValidationRunner:
                 Unreal).  Default: ``VALIDATOR_MAX_WORKERS`` env var or CPU count.
 
         """
-        self.config    = config
-        self.category   = category
-        self.severity   = severity
-        self.rules     = rules
-        self.context   = context
+        self.config = config
+        self.category = category
+        self.severity = severity
+        self.rules = rules
+        self.context = context
         self.allowlist = allowlist
 
         # Set default max_workers if not provided
@@ -83,7 +84,9 @@ class ValidationRunner:
                     logger.warning(
                         "[ValidationRunner] No rules matched "
                         "(category=%r, severity=%r). Registered: %s",
-                        category, severity, list(registry.listRules().keys())
+                        category,
+                        severity,
+                        list(registry.listRules().keys()),
                     )
                 # Get current context for context-aware rules
                 current_context = HostType.UNREAL if context is None else context
@@ -154,10 +157,7 @@ class ValidationRunner:
         """
         rule_name = getattr(rule, "name", "") or type(rule).__name__
         category = getattr(rule, "category", "") or "runtime"
-        message = (
-            f"Rule runtime failure in '{rule_name}': "
-            f"{type(exc).__name__}: {exc}"
-        )
+        message = f"Rule runtime failure in '{rule_name}': {type(exc).__name__}: {exc}"
         return ValidationResult(
             asset_path=asset_path,
             rule_name=rule_name,
@@ -196,6 +196,7 @@ class ValidationRunner:
 
         """
         from . import __version__
+
         t0 = time.perf_counter()
         all_results: list[ValidationResult] = []
 
@@ -207,8 +208,7 @@ class ValidationRunner:
                     thread_name_prefix="validator",
                 ) as executor:
                     futures = {
-                        executor.submit(self.validateAsset, path): path
-                        for path in asset_paths
+                        executor.submit(self.validateAsset, path): path for path in asset_paths
                     }
                     for future in concurrent.futures.as_completed(futures):
                         try:
@@ -262,6 +262,7 @@ class ValidationRunner:
 
         """
         from . import __version__
+
         t0 = time.perf_counter()
         seen: set[str] = set()
         assets: list[str] = []
@@ -278,9 +279,7 @@ class ValidationRunner:
 
         self.last_run_cancelled = False
         hooks_enabled = (
-            slow_task is not None
-            or should_cancel is not None
-            or advance_progress is not None
+            slow_task is not None or should_cancel is not None or advance_progress is not None
         )
 
         def _is_cancelled() -> bool:
@@ -325,10 +324,7 @@ class ValidationRunner:
                     max_workers=self.max_workers,
                     thread_name_prefix="validator",
                 ) as executor:
-                    futures = {
-                        executor.submit(self.validateAsset, path): path
-                        for path in assets
-                    }
+                    futures = {executor.submit(self.validateAsset, path): path for path in assets}
                     for future in concurrent.futures.as_completed(futures):
                         try:
                             all_results.extend(future.result())
@@ -396,6 +392,7 @@ class ValidationRunner:
 
         """
         from . import __version__
+
         t0 = time.perf_counter()
 
         # Collect assets from directory
@@ -407,9 +404,7 @@ class ValidationRunner:
 
         self.last_run_cancelled = False
         hooks_enabled = (
-            slow_task is not None
-            or should_cancel is not None
-            or advance_progress is not None
+            slow_task is not None or should_cancel is not None or advance_progress is not None
         )
 
         def _is_cancelled() -> bool:
@@ -454,10 +449,7 @@ class ValidationRunner:
                     max_workers=self.max_workers,
                     thread_name_prefix="validator",
                 ) as executor:
-                    futures = {
-                        executor.submit(self.validateAsset, path): path
-                        for path in assets
-                    }
+                    futures = {executor.submit(self.validateAsset, path): path for path in assets}
                     for future in concurrent.futures.as_completed(futures):
                         try:
                             all_results.extend(future.result())
