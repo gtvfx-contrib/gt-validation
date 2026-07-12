@@ -1,0 +1,2243 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\__init__.py:16:1
+   |
+14 |   __all__     = ["ValidationRunner", "Config", "ValidationReport"]
+15 |
+16 | / from .runner import ValidationRunner
+17 | | from .config import Config
+18 | | from .reporting.models import ValidationReport
+   | |______________________________________________^
+   |
+help: Organize imports
+
+F401 [*] `datetime.date` imported but unused
+  --> py\gt\validator\allowlist.py:27:22
+   |
+26 | import logging
+27 | from datetime import date, datetime
+   |                      ^^^^
+28 | from typing import TYPE_CHECKING
+   |
+help: Remove unused import: `datetime.date`
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\allowlist.py:46:1
+   |
+44 |         created_at: Timestamp when the entry was added.
+45 |         expires_at: Optional timestamp when the entry expires.
+46 |     
+   | ^^^^
+47 |     """
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\allowlist.py:62:1
+   |
+60 |             expires_at: Optional expiry date string in ``YYYY-MM-DD`` format.
+61 |                 Entries past this date are treated as expired.
+62 |         
+   | ^^^^^^^^
+63 |         """
+64 |         self.rule = rule
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\allowlist.py:75:1
+   |
+73 |         if not self.expires_at:
+74 |             return False
+75 |             
+   | ^^^^^^^^^^^^
+76 |         try:
+77 |             expire_date = datetime.fromisoformat(self.expires_at)
+   |
+help: Remove whitespace from blank line
+
+D105 Missing docstring in magic method
+  --> py\gt\validator\allowlist.py:87:9
+   |
+85 |             return True
+86 |
+87 |     def __repr__(self) -> str:
+   |         ^^^^^^^^
+88 |         return (
+89 |             f"AllowlistEntry(rule={self.rule!r}, asset={self.asset!r}, "
+   |
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\allowlist.py:107:1
+    |
+105 |         if manager.isAllowed("material_blend_mode", "/Game/M_HeroSkin"):
+106 |             return self._makeResult(asset_path, passed=True, message="Allowlisted.")
+107 |     
+    | ^^^^
+108 |     """
+    |
+help: Remove whitespace from blank line
+
+UP037 [*] Remove quotes from type annotation
+   --> py\gt\validator\allowlist.py:110:32
+    |
+108 |     """
+109 |
+110 |     def __init__(self, config: "Config") -> None:
+    |                                ^^^^^^^^
+111 |         """Initialise the manager and load entries from config.
+    |
+help: Remove quotes
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\allowlist.py:116:1
+    |
+114 |             config: Loaded :class:`~validator.config.Config` instance.
+115 |                 The ``allowlist`` key must contain a list of entry dicts.
+116 |         
+    | ^^^^^^^^
+117 |         """
+118 |         self.entries: list[AllowlistEntry] = []
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\allowlist.py:120:1
+    |
+118 |         self.entries: list[AllowlistEntry] = []
+119 |         self.config = config
+120 |         
+    | ^^^^^^^^
+121 |         # Load allowlist from config
+122 |         raw_entries: list[dict] = config.get("allowlist", [])
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\allowlist.py:161:1
+    |
+159 |             ``True`` when an active (non-expired) entry matches, ``False``
+160 |             otherwise.
+161 |         
+    | ^^^^^^^^
+162 |         """
+163 |         for entry in self.entries:
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\allowlist.py:177:1
+    |
+175 |         Returns:
+176 |             The matching entry, or ``None`` if no active entry is found.
+177 |         
+    | ^^^^^^^^
+178 |         """
+179 |         for entry in self.entries:
+    |
+help: Remove whitespace from blank line
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\allowlist.py:184:9
+    |
+182 |         return None
+183 |
+184 |     def __len__(self) -> int:
+    |         ^^^^^^^
+185 |         return len(self.entries)
+    |
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\allowlist.py:187:9
+    |
+185 |         return len(self.entries)
+186 |
+187 |     def __repr__(self) -> str:
+    |         ^^^^^^^^
+188 |         return f"AllowlistManager(entries={len(self.entries)})"
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\cli.py:24:1
+   |
+23 |   """
+24 | / from __future__ import annotations
+25 | |
+26 | | import argparse
+27 | | import os
+28 | | import sys
+29 | |
+30 | | from .config import Config
+31 | | from .rules.base import Severity
+32 | | from .runner import ValidationRunner
+33 | | from .reporting.formatters import ConsoleFormatter, JSONFormatter, HTMLFormatter
+34 | | from .reporting.models import ValidationReport
+35 | | from .env import HAS_UNREAL
+   | |___________________________^
+   |
+help: Organize imports
+
+F541 [*] f-string without any placeholders
+   --> py\gt\validator\cli.py:186:11
+    |
+184 |     env.setdefault("VALIDATOR_MAX_WORKERS", "1")  # Unreal thread safety default
+185 |
+186 |     print(f"[CLI] Dispatching to Unreal Editor...")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+187 |     print(f"[CLI]   Unreal cmd : {unreal_cmd}")
+188 |     print(f"[CLI]   Project    : {uproject}")
+    |
+help: Remove extraneous `f` prefix
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\cli.py:252:1
+    |
+250 |     Returns:
+251 |         A configured :class:`argparse.ArgumentParser` instance.
+252 |     
+    | ^^^^
+253 |     """
+254 |     parser = argparse.ArgumentParser(
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\cli.py:277:1
+    |
+275 |   1   at least one ERROR-severity failure
+276 |   2   configuration or argument error
+277 |   
+    | ^^
+278 | """,
+279 |     )
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\cli.py:374:1
+    |
+372 |         ``0`` if all checks passed, ``1`` if any ERROR-severity rule failed,
+373 |         ``2`` if there was a configuration or argument error.
+374 |     
+    | ^^^^
+375 |     """
+376 |     import logging
+    |
+help: Remove whitespace from blank line
+
+W291 [*] Trailing whitespace
+  --> py\gt\validator\config.py:40:17
+   |
+38 |     "valid_extensions": [
+39 |         ".uasset",
+40 |         ".umap", 
+   |                 ^
+41 |         ".fbx", 
+42 |         ".png", 
+   |
+help: Remove trailing whitespace
+
+W291 [*] Trailing whitespace
+  --> py\gt\validator\config.py:41:16
+   |
+39 |         ".uasset",
+40 |         ".umap", 
+41 |         ".fbx", 
+   |                ^
+42 |         ".png", 
+43 |         ".tga", 
+   |
+help: Remove trailing whitespace
+
+W291 [*] Trailing whitespace
+  --> py\gt\validator\config.py:42:16
+   |
+40 |         ".umap", 
+41 |         ".fbx", 
+42 |         ".png", 
+   |                ^
+43 |         ".tga", 
+44 |         ".exr",
+   |
+help: Remove trailing whitespace
+
+W291 [*] Trailing whitespace
+  --> py\gt\validator\config.py:43:16
+   |
+41 |         ".fbx", 
+42 |         ".png", 
+43 |         ".tga", 
+   |                ^
+44 |         ".exr",
+45 |         ".mp4"],
+   |
+help: Remove trailing whitespace
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\config.py:107:1
+    |
+105 |     Merges built-in defaults, an optional JSON file, and environment variable
+106 |     overrides into a single dict-like object.
+107 |     
+    | ^^^^
+108 |     """
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\config.py:123:1
+    |
+121 |                 exist, the JSON is malformed, or (with ``validate=True``) any
+122 |                 config value has the wrong type.
+123 |         
+    | ^^^^^^^^
+124 |         """
+125 |         self._data: dict[str, Any] = dict(DEFAULTS)
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\config.py:158:1
+    |
+156 |             ValueError: If the file does not exist, is not a JSON object, or
+157 |                 contains malformed JSON.
+158 |         
+    | ^^^^^^^^
+159 |         """
+160 |         if not os.path.isfile(path):
+    |
+help: Remove whitespace from blank line
+
+UP015 [*] Unnecessary mode argument
+   --> py\gt\validator\config.py:163:29
+    |
+161 |             raise ValueError(f"Config file not found: '{path}'")
+162 |         try:
+163 |             with open(path, "r", encoding="utf-8") as fh:
+    |                             ^^^
+164 |                 data = json.load(fh)
+165 |             if not isinstance(data, dict):
+    |
+help: Remove mode argument
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\config.py:182:1
+    |
+180 |             ``VALIDATOR_MAX_FILE_SIZE_MB=100`` sets ``max_file_size_mb=100``
+181 |             (coerced to ``int``).
+182 |         
+    | ^^^^^^^^
+183 |         """
+184 |         result: dict[str, Any] = {}
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\config.py:206:1
+    |
+204 |         Returns:
+205 |             The coerced value, or the original string if coercion fails.
+206 |         
+    | ^^^^^^^^
+207 |         """
+208 |         default = DEFAULTS.get(key)
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\config.py:253:1
+    |
+251 |         Returns:
+252 |             The stored value for *key*, or *default*.
+253 |         
+    | ^^^^^^^^
+254 |         """
+255 |         return self._data.get(key, default)
+    |
+help: Remove whitespace from blank line
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\config.py:257:9
+    |
+255 |         return self._data.get(key, default)
+256 |
+257 |     def __getitem__(self, key: str) -> Any:
+    |         ^^^^^^^^^^^
+258 |         return self._data[key]
+    |
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\config.py:260:9
+    |
+258 |         return self._data[key]
+259 |
+260 |     def __contains__(self, key: str) -> bool:
+    |         ^^^^^^^^^^^^
+261 |         return key in self._data
+    |
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\config.py:263:9
+    |
+261 |         return key in self._data
+262 |
+263 |     def __repr__(self) -> str:
+    |         ^^^^^^^^
+264 |         return f"Config(keys={list(self._data.keys())})"
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> py\gt\validator\context\__init__.py:2:1
+  |
+1 |   """ValidationContext adapters for filesystem and Unreal Engine environments."""
+2 | / from .base import ValidationContext, AssetMetadata
+3 | | from .filesystem import FilesystemContext
+4 | | from .unreal import UnrealContext
+  | |_________________________________^
+5 |
+6 |   __all__ = ["ValidationContext", "AssetMetadata", "FilesystemContext", "UnrealContext"]
+  |
+help: Organize imports
+
+W292 [*] No newline at end of file
+ --> py\gt\validator\context\__init__.py:6:87
+  |
+4 | from .unreal import UnrealContext
+5 |
+6 | __all__ = ["ValidationContext", "AssetMetadata", "FilesystemContext", "UnrealContext"]
+  |                                                                                       ^
+  |
+help: Add trailing newline
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\context\base.py:35:1
+   |
+33 |             when unknown.
+34 |         properties: Arbitrary key/value metadata returned by the context.
+35 |     
+   | ^^^^
+36 |     """
+37 |     path: str = ""
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\context\base.py:55:1
+   |
+53 |     A context knows how to collect :class:`AssetMetadata` for a given path.
+54 |     Concrete implementations: :class:`FilesystemContext`, :class:`UnrealContext`.
+55 |     
+   | ^^^^
+56 |     """
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\context\base.py:67:1
+   |
+65 |         Returns:
+66 |             A populated :class:`AssetMetadata` instance for the asset.
+67 |         
+   | ^^^^^^^^
+68 |         """
+69 |         ...
+   |
+help: Remove whitespace from blank line
+
+D105 Missing docstring in magic method
+  --> py\gt\validator\context\base.py:76:9
+   |
+74 |         ...
+75 |
+76 |     def __repr__(self) -> str:
+   |         ^^^^^^^^
+77 |         return f"{type(self).__name__}(available={self.isAvailable()})"
+   |
+
+W292 [*] No newline at end of file
+  --> py\gt\validator\context\base.py:77:72
+   |
+76 |     def __repr__(self) -> str:
+77 |         return f"{type(self).__name__}(available={self.isAvailable()})"
+   |                                                                        ^
+   |
+help: Add trailing newline
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\context\filesystem.py:7:1
+   |
+ 6 |   """
+ 7 | / from __future__ import annotations
+ 8 | |
+ 9 | | import os
+10 | |
+11 | | from .base import ValidationContext, AssetMetadata
+   | |__________________________________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\context\filesystem.py:18:1
+   |
+17 |     Available in all environments (standalone, CI, Unreal).
+18 |     
+   | ^^^^
+19 |     """
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\context\filesystem.py:35:1
+   |
+33 |             calls.  ``size_bytes`` is ``0`` for paths that are not regular
+34 |             files.
+35 |         
+   | ^^^^^^^^
+36 |         """
+37 |         name = os.path.basename(asset_path)
+   |
+help: Remove whitespace from blank line
+
+W292 [*] No newline at end of file
+  --> py\gt\validator\context\filesystem.py:50:10
+   |
+48 |             asset_class="",
+49 |             properties={},
+50 |         )
+   |          ^
+   |
+help: Add trailing newline
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\context\unreal.py:7:1
+   |
+ 6 |   """
+ 7 | / from __future__ import annotations
+ 8 | |
+ 9 | | import logging
+10 | | from typing import Any
+11 | |
+12 | | from .base import ValidationContext, AssetMetadata
+13 | | from ..env import HAS_UNREAL
+   | |____________________________^
+14 |
+15 |   logger = logging.getLogger(__name__)
+   |
+help: Organize imports
+
+F401 [*] `typing.Any` imported but unused
+  --> py\gt\validator\context\unreal.py:10:20
+   |
+ 9 | import logging
+10 | from typing import Any
+   |                    ^^^
+11 |
+12 | from .base import ValidationContext, AssetMetadata
+   |
+help: Remove unused import: `typing.Any`
+
+D107 Missing docstring in `__init__`
+  --> py\gt\validator\context\unreal.py:37:9
+   |
+35 |     """
+36 |
+37 |     def __init__(self, directory: str = "/Game/") -> None:
+   |         ^^^^^^^^
+38 |         if not HAS_UNREAL:
+39 |             raise ImportError(
+   |
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\context\unreal.py:117:9
+    |
+115 |         )
+116 |
+117 |     def __repr__(self) -> str:
+    |         ^^^^^^^^
+118 |         return f"UnrealContext(directory={self.directory!r})"
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\entry_points\unreal\run_validation.py:19:1
+   |
+18 |   """
+19 | / from __future__ import annotations
+20 | |
+21 | | from pathlib import Path
+22 | |
+23 | | import unreal
+24 | |
+25 | | from ...config import Config
+26 | | from ...errors import UnrealAPIError
+27 | | from ...reporting import HTMLFormatter, JSONFormatter
+28 | | from ...reporting.models import ValidationReport
+29 | | from ...runner import ValidationRunner
+   | |______________________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\entry_points\unreal\run_validation.py:192:1
+    |
+190 |         _logError(f"[Validator] Unreal API error: {exc}")
+191 |         raise
+192 |     
+    | ^^^^
+193 |     if report:
+194 |         _outputReport(
+    |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\env.py:18:1
+   |
+17 |   """
+18 | / import logging
+19 | | from typing import Any, TYPE_CHECKING
+20 | |
+21 | | from .errors import UnrealAPIError
+   | |__________________________________^
+22 |
+23 |   logger = logging.getLogger(__name__)
+   |
+help: Organize imports
+
+D212 [*] Multi-line docstring summary should start at the first line
+   --> py\gt\validator\env.py:97:5
+    |
+ 96 |   def getSelectedAssets() -> list:
+ 97 | /     """
+ 98 | |     Return the list of assets currently selected in the Content Browser.
+ 99 | |
+100 | |     Returns an empty list when running outside Unreal or when no assets are
+101 | |     selected.  Inside the Editor, each element is an ``unreal.Object``.
+102 | |
+103 | |     Example::
+104 | |
+105 | |         assets = getSelectedAssets()
+106 | |         for asset in assets:
+107 | |             print(asset.get_path_name())
+108 | |     """
+    | |_______^
+109 |       if not HAS_UNREAL:
+110 |           return []
+    |
+help: Remove whitespace after opening quotes
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\env.py:198:1
+    |
+196 |         ImportError: If Unreal Engine is not available in the current
+197 |             Python environment.
+198 |     
+    | ^^^^
+199 |     """
+200 |     if not HAS_UNREAL:
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\env.py:224:1
+    |
+222 |         UnrealAPIError: If Unreal is unavailable, if the API call raises,
+223 |             or if the returned asset is ``None``.
+224 |     
+    | ^^^^
+225 |     """
+226 |     if not HAS_UNREAL:
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\errors.py:25:1
+   |
+23 |         ... except UnrealAPIError as exc:
+24 |         ...     print(f"Skipping asset: {exc}")
+25 |     
+   | ^^^^
+26 |     """
+   |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\registry.py:17:1
+   |
+16 |   """
+17 | / from __future__ import annotations
+18 | |
+19 | | import importlib
+20 | | import importlib.util
+21 | | import logging
+22 | | import os
+23 | | import pkgutil
+24 | | from typing import Type, TYPE_CHECKING
+   | |______________________________________^
+25 |
+26 |   if TYPE_CHECKING:
+   |
+help: Organize imports
+
+UP035 `typing.Type` is deprecated, use `type` instead
+  --> py\gt\validator\registry.py:24:1
+   |
+22 | import os
+23 | import pkgutil
+24 | from typing import Type, TYPE_CHECKING
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+25 |
+26 | if TYPE_CHECKING:
+   |
+
+F401 [*] `.rules.base.AbstractRule` imported but unused
+  --> py\gt\validator\registry.py:27:29
+   |
+26 | if TYPE_CHECKING:
+27 |     from .rules.base import AbstractRule, Severity
+   |                             ^^^^^^^^^^^^
+28 |
+29 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import
+
+F401 [*] `.rules.base.Severity` imported but unused
+  --> py\gt\validator\registry.py:27:43
+   |
+26 | if TYPE_CHECKING:
+27 |     from .rules.base import AbstractRule, Severity
+   |                                           ^^^^^^^^
+28 |
+29 | logger = logging.getLogger(__name__)
+   |
+help: Remove unused import
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\registry.py:52:16
+   |
+50 |     """
+51 |
+52 |     _instance: "RuleRegistry | None" = None
+   |                ^^^^^^^^^^^^^^^^^^^^^
+53 |     _rules: "dict[str, Type]" = {}
+54 |     _discovered: bool = False
+   |
+help: Remove quotes
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\registry.py:53:13
+   |
+52 |     _instance: "RuleRegistry | None" = None
+53 |     _rules: "dict[str, Type]" = {}
+   |             ^^^^^^^^^^^^^^^^^
+54 |     _discovered: bool = False
+   |
+help: Remove quotes
+
+UP006 [*] Use `type` instead of `Type` for type annotation
+  --> py\gt\validator\registry.py:53:24
+   |
+52 |     _instance: "RuleRegistry | None" = None
+53 |     _rules: "dict[str, Type]" = {}
+   |                        ^^^^
+54 |     _discovered: bool = False
+   |
+help: Replace with `type`
+
+D102 Missing docstring in public method
+  --> py\gt\validator\registry.py:56:9
+   |
+54 |     _discovered: bool = False
+55 |
+56 |     def __new__(cls) -> "RuleRegistry":
+   |         ^^^^^^^
+57 |         if cls._instance is None:
+58 |             cls._instance = super().__new__(cls)
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\registry.py:56:25
+   |
+54 |     _discovered: bool = False
+55 |
+56 |     def __new__(cls) -> "RuleRegistry":
+   |                         ^^^^^^^^^^^^^^
+57 |         if cls._instance is None:
+58 |             cls._instance = super().__new__(cls)
+   |
+help: Remove quotes
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\registry.py:61:29
+   |
+59 |         return cls._instance
+60 |
+61 |     def register(self, cls: "Type") -> "Type":
+   |                             ^^^^^^
+62 |         """Class decorator — registers a rule class.
+   |
+help: Remove quotes
+
+UP006 [*] Use `type` instead of `Type` for type annotation
+  --> py\gt\validator\registry.py:61:30
+   |
+59 |         return cls._instance
+60 |
+61 |     def register(self, cls: "Type") -> "Type":
+   |                              ^^^^
+62 |         """Class decorator — registers a rule class.
+   |
+help: Replace with `type`
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\registry.py:61:40
+   |
+59 |         return cls._instance
+60 |
+61 |     def register(self, cls: "Type") -> "Type":
+   |                                        ^^^^^^
+62 |         """Class decorator — registers a rule class.
+   |
+help: Remove quotes
+
+UP006 [*] Use `type` instead of `Type` for type annotation
+  --> py\gt\validator\registry.py:61:41
+   |
+59 |         return cls._instance
+60 |
+61 |     def register(self, cls: "Type") -> "Type":
+   |                                         ^^^^
+62 |         """Class decorator — registers a rule class.
+   |
+help: Replace with `type`
+
+UP006 [*] Use `type` instead of `Type` for type annotation
+   --> py\gt\validator\registry.py:175:15
+    |
+173 |         severity=None,
+174 |         context=None,
+175 |     ) -> list[Type]:
+    |               ^^^^
+176 |         """Return registered rule classes, optionally filtered.
+    |
+help: Replace with `type`
+
+UP006 [*] Use `type` instead of `Type` for type annotation
+   --> py\gt\validator\registry.py:197:38
+    |
+195 |         return rules
+196 |
+197 |     def listRules(self) -> dict[str, Type]:
+    |                                      ^^^^
+198 |         """Return a copy of the rules dict {name: class}."""
+199 |         return dict(self._rules)
+    |
+help: Replace with `type`
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\registry.py:206:9
+    |
+204 |         type(self)._discovered = False
+205 |
+206 |     def __len__(self) -> int:
+    |         ^^^^^^^
+207 |         return len(self._rules)
+    |
+
+D105 Missing docstring in magic method
+   --> py\gt\validator\registry.py:209:9
+    |
+207 |         return len(self._rules)
+208 |
+209 |     def __repr__(self) -> str:
+    |         ^^^^^^^^
+210 |         return f"RuleRegistry(rules={list(self._rules.keys())})"
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> py\gt\validator\reporting\__init__.py:2:1
+  |
+1 |   """Report models and output formatters for validation results."""
+2 | / from .models import ValidationReport
+3 | | from .formatters import ConsoleFormatter, JSONFormatter, HTMLFormatter
+  | |______________________________________________________________________^
+4 |
+5 |   __all__ = ["ValidationReport", "ConsoleFormatter", "JSONFormatter", "HTMLFormatter"]
+  |
+help: Organize imports
+
+W292 [*] No newline at end of file
+ --> py\gt\validator\reporting\__init__.py:5:85
+  |
+3 | from .formatters import ConsoleFormatter, JSONFormatter, HTMLFormatter
+4 |
+5 | __all__ = ["ValidationReport", "ConsoleFormatter", "JSONFormatter", "HTMLFormatter"]
+  |                                                                                     ^
+  |
+help: Add trailing newline
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\reporting\formatters.py:17:1
+   |
+15 |   """
+16 |
+17 | / from __future__ import annotations
+18 | |
+19 | | import json
+20 | | import re
+21 | |
+22 | | from datetime import datetime
+23 | |
+24 | | from .models import ValidationReport
+25 | |
+26 | | from ..rules.base import Severity, ValidationResult
+   | |___________________________________________________^
+27 |
+28 |   # ── ANSI codes ────────────────────────────────────────────────────────────── #
+   |
+help: Organize imports
+
+D410 [*] Missing blank line after section ("Args")
+  --> py\gt\validator\reporting\formatters.py:56:5
+   |
+54 |     """Group results by asset path, preserving insertion order.
+55 |
+56 |     Args:
+   |     ^^^^
+57 |         results: Flat list of ValidationResult objects.
+58 |     Returns:
+   |
+help: Add blank line after "Args"
+
+D411 [*] Missing blank line before section ("Returns")
+  --> py\gt\validator\reporting\formatters.py:58:5
+   |
+56 |     Args:
+57 |         results: Flat list of ValidationResult objects.
+58 |     Returns:
+   |     ^^^^^^^
+59 |         Ordered dict mapping asset path → list of results for that asset.
+   |
+help: Add blank line before "Returns"
+
+D107 Missing docstring in `__init__`
+  --> py\gt\validator\reporting\formatters.py:85:9
+   |
+84 |     """
+85 |     def __init__(self, show_passing: bool = False, use_color: bool = True) -> None:
+   |         ^^^^^^^^
+86 |         self.show_passing = show_passing
+87 |         self._use_color = use_color
+   |
+
+D107 Missing docstring in `__init__`
+   --> py\gt\validator\reporting\formatters.py:236:9
+    |
+235 |     """
+236 |     def __init__(self, show_passing: bool = False) -> None:
+    |         ^^^^^^^^
+237 |         self.show_passing = show_passing
+    |
+
+D107 Missing docstring in `__init__`
+   --> py\gt\validator\reporting\formatters.py:325:9
+    |
+323 |     }
+324 |
+325 |     def __init__(self, show_passing: bool = False) -> None:
+    |         ^^^^^^^^
+326 |         self.show_passing = show_passing
+    |
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\reporting\formatters.py:342:1
+    |
+340 |         css          = self._css()
+341 |         now          = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+342 |         
+    | ^^^^^^^^
+343 |         html = f"""<!DOCTYPE html>
+344 | <html lang="en">
+    |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> py\gt\validator\reporting\models.py:2:1
+  |
+1 |   """ValidationReport dataclass with filtering and statistics helpers."""
+2 | / from __future__ import annotations
+3 | |
+4 | | from dataclasses import dataclass, field
+5 | | from typing import Optional
+6 | |
+7 | | from ..rules.base import ValidationResult, Severity
+  | |___________________________________________________^
+  |
+help: Organize imports
+
+F401 [*] `dataclasses.field` imported but unused
+ --> py\gt\validator\reporting\models.py:4:36
+  |
+2 | from __future__ import annotations
+3 |
+4 | from dataclasses import dataclass, field
+  |                                    ^^^^^
+5 | from typing import Optional
+  |
+help: Remove unused import: `dataclasses.field`
+
+F401 [*] `typing.Optional` imported but unused
+ --> py\gt\validator\reporting\models.py:5:20
+  |
+4 | from dataclasses import dataclass, field
+5 | from typing import Optional
+  |                    ^^^^^^^^
+6 |
+7 | from ..rules.base import ValidationResult, Severity
+  |
+help: Remove unused import: `typing.Optional`
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\reporting\models.py:21:1
+   |
+19 |         duration_ms: Wall-clock time for the full run in milliseconds.
+20 |         tool_version: Framework version string.
+21 |     
+   | ^^^^
+22 |     """
+23 |     results:      list[ValidationResult]
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\reporting\models.py:96:1
+   |
+94 |             A list of :class:`~validator.rules.base.ValidationResult` objects
+95 |             whose severity matches.
+96 |         
+   | ^^^^^^^^
+97 |         """
+98 |         return [r for r in self.results if r.severity == severity]
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\reporting\models.py:109:1
+    |
+107 |             A list of :class:`~validator.rules.base.ValidationResult` objects
+108 |             whose category matches.
+109 |         
+    | ^^^^^^^^
+110 |         """
+111 |         return [r for r in self.results if r.category == category]
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\base.py:21:1
+   |
+19 |         WARNING: Pipeline can continue; asset needs attention.
+20 |         INFO: Informational note; no action required.
+21 |     
+   | ^^^^
+22 |     """
+23 |     ERROR   = "ERROR"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\base.py:44:1
+   |
+42 |         asset_class: Unreal asset class name if known, e.g. ``"StaticMesh"``.
+43 |         fix_hint: Brief suggestion for how to resolve a failure.
+44 |     
+   | ^^^^
+45 |     """
+46 |     asset_path:  str
+   |
+help: Remove whitespace from blank line
+
+D105 Missing docstring in magic method
+  --> py\gt\validator\rules\base.py:58:9
+   |
+56 |     fix_hint:    str   = ""
+57 |
+58 |     def __str__(self) -> str:
+   |         ^^^^^^^
+59 |         if self.skipped:
+60 |             return (
+   |
+
+D107 Missing docstring in `__init__`
+  --> py\gt\validator\rules\base.py:95:9
+   |
+93 |     context = None  # Type: HostType
+94 |
+95 |     def __init__(self, config: "Config", context) -> None:
+   |         ^^^^^^^^
+96 |         self.config = config
+97 |         self.context = context
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\base.py:95:32
+   |
+93 |     context = None  # Type: HostType
+94 |
+95 |     def __init__(self, config: "Config", context) -> None:
+   |                                ^^^^^^^^
+96 |         self.config = config
+97 |         self.context = context
+   |
+help: Remove quotes
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\base.py:120:1
+    |
+118 |         Returns:
+119 |             A :class:`ValidationResult` with pass, fail, or skip status.
+120 |         
+    | ^^^^^^^^
+121 |         """
+122 |         ...
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\base.py:145:1
+    |
+143 |         Returns:
+144 |             A fully populated :class:`ValidationResult`.
+145 |         
+    | ^^^^^^^^
+146 |         """
+147 |         return ValidationResult(
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\base.py:170:1
+    |
+168 |         Returns:
+169 |             A :class:`ValidationResult` with ``skipped=True`` and ``passed=True``.
+170 |         
+    | ^^^^^^^^
+171 |         """
+172 |         return ValidationResult(
+    |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\bounding_box.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | from .base import AbstractRule, Severity, ValidationResult
+11 | | from ..env import loadUnrealAsset
+12 | | from ..errors import UnrealAPIError
+13 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\bounding_box.py:60:1
+   |
+58 |         category: Rule category ``"bounding_box"``.
+59 |         severity: :attr:`Severity.WARNING`.
+60 |     
+   | ^^^^
+61 |     """
+62 |     name     = "bounding_box_extent"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\bounding_box.py:75:1
+   |
+73 |             A :class:`ValidationResult` indicating whether the bounding box extent
+74 |             is within the configured limit.
+75 |         
+   | ^^^^^^^^
+76 |         """
+77 |         try:
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\bounding_box.py:130:1
+    |
+128 |         category: Rule category ``"bounding_box"``.
+129 |         severity: :attr:`Severity.WARNING`.
+130 |     
+    | ^^^^
+131 |     """
+132 |     name     = "bounding_box_origin"
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\bounding_box.py:145:1
+    |
+143 |             A :class:`ValidationResult` indicating whether the mesh center
+144 |             is within the configured offset limit from the world origin.
+145 |         
+    | ^^^^^^^^
+146 |         """
+147 |         try:
+    |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\filesystem.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | import os
+11 | |
+12 | | from .base import AbstractRule, Severity, ValidationResult
+13 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\filesystem.py:24:1
+   |
+22 |         category: Rule category ``"filesystem"``.
+23 |         severity: :attr:`Severity.ERROR`.
+24 |     
+   | ^^^^
+25 |     """
+26 |     name     = "file_size"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\filesystem.py:39:1
+   |
+37 |             A :class:`ValidationResult` indicating whether the file size is within
+38 |             the configured limit.  Skipped for non-filesystem paths.
+39 |         
+   | ^^^^^^^^
+40 |         """
+41 |         max_mb: float = self.config.get("max_file_size_mb", 50)
+   |
+help: Remove whitespace from blank line
+
+N806 Variable `sizeMb` in function should be lowercase
+  --> py\gt\validator\rules\filesystem.py:52:9
+   |
+51 |         size_bytes = os.path.getsize(asset_path)
+52 |         sizeMb = size_bytes / (1024 * 1024)
+   |         ^^^^^^
+53 |
+54 |         if sizeMb > max_mb:
+   |
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\filesystem.py:77:1
+   |
+75 |         category: Rule category ``"filesystem"``.
+76 |         severity: :attr:`Severity.ERROR`.
+77 |     
+   | ^^^^
+78 |     """
+79 |     name     = "valid_extension"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\filesystem.py:92:1
+   |
+90 |             A :class:`ValidationResult` indicating whether the extension is in the
+91 |             approved list.  Skipped for non-filesystem paths.
+92 |         
+   | ^^^^^^^^
+93 |         """
+94 |         _, ext = os.path.splitext(asset_path)
+   |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\lod.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | from .base import AbstractRule, Severity, ValidationResult
+11 | | from ..env import loadUnrealAsset
+12 | | from ..errors import UnrealAPIError
+13 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\lod.py:65:1
+   |
+63 |         category: Rule category ``"lod"``.
+64 |         severity: :attr:`Severity.ERROR`.
+65 |     
+   | ^^^^
+66 |     """
+67 |     name     = "lod_count"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\lod.py:80:1
+   |
+78 |             A :class:`ValidationResult` indicating whether the LOD count is within
+79 |             the configured minimum and maximum bounds.
+80 |         
+   | ^^^^^^^^
+81 |         """
+82 |         try:
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\lod.py:135:1
+    |
+133 |         category: Rule category ``"lod"``.
+134 |         severity: :attr:`Severity.WARNING`.
+135 |     
+    | ^^^^
+136 |     """
+137 |     name     = "lod_screen_size_ratio"
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\lod.py:150:1
+    |
+148 |             A :class:`ValidationResult` indicating whether screen size values
+149 |             decrease correctly across all LOD levels.
+150 |         
+    | ^^^^^^^^
+151 |         """
+152 |         try:
+    |
+help: Remove whitespace from blank line
+
+F841 [*] Local variable `min_ratio` is assigned to but never used
+   --> py\gt\validator\rules\lod.py:200:13
+    |
+198 |             screen_sizes = screen_sizes[:lod_count]
+199 |
+200 |             min_ratio: float = self.config.get("min_lod_screen_size_ratio", 0.5)
+    |             ^^^^^^^^^
+201 |             violations = []
+202 |             for i in range(1, len(screen_sizes)):
+    |
+help: Remove assignment to unused variable `min_ratio`
+
+F401 [*] `unreal` imported but unused
+  --> py\gt\validator\rules\material.py:16:12
+   |
+15 | if TYPE_CHECKING:
+16 |     import unreal  # noqa: PLC0415
+   |            ^^^^^^
+17 |
+18 | from .base import AbstractRule, Severity, ValidationResult
+   |
+help: Remove unused import: `unreal`
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\material.py:18:1
+   |
+16 |       import unreal  # noqa: PLC0415
+17 |
+18 | / from .base import AbstractRule, Severity, ValidationResult
+19 | | from ..config import Config
+20 | | from ..env import loadUnrealAsset
+21 | | from ..errors import UnrealAPIError
+22 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+F401 [*] `..errors.UnrealAPIError` imported but unused
+  --> py\gt\validator\rules\material.py:21:22
+   |
+19 | from ..config import Config
+20 | from ..env import loadUnrealAsset
+21 | from ..errors import UnrealAPIError
+   |                      ^^^^^^^^^^^^^^
+22 | from ..registry import registry
+   |
+help: Remove unused import: `..errors.UnrealAPIError`
+
+D107 Missing docstring in `__init__`
+  --> py\gt\validator\rules\material.py:44:9
+   |
+42 |     context = HostType.UNREAL
+43 |
+44 |     def __init__(self, config: "Config", context: HostType) -> None:
+   |         ^^^^^^^^
+45 |         super().__init__(config, context)
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\material.py:44:32
+   |
+42 |     context = HostType.UNREAL
+43 |
+44 |     def __init__(self, config: "Config", context: HostType) -> None:
+   |                                ^^^^^^^^
+45 |         super().__init__(config, context)
+   |
+help: Remove quotes
+
+D107 Missing docstring in `__init__`
+   --> py\gt\validator\rules\material.py:114:9
+    |
+112 |     context = HostType.UNREAL
+113 |
+114 |     def __init__(self, config: "Config", context: HostType) -> None:
+    |         ^^^^^^^^
+115 |         super().__init__(config, context)
+    |
+
+UP037 [*] Remove quotes from type annotation
+   --> py\gt\validator\rules\material.py:114:32
+    |
+112 |     context = HostType.UNREAL
+113 |
+114 |     def __init__(self, config: "Config", context: HostType) -> None:
+    |                                ^^^^^^^^
+115 |         super().__init__(config, context)
+    |
+help: Remove quotes
+
+D107 Missing docstring in `__init__`
+   --> py\gt\validator\rules\material.py:190:9
+    |
+188 |     )
+189 |
+190 |     def __init__(self, config: "Config", context: HostType) -> None:
+    |         ^^^^^^^^
+191 |         super().__init__(config, context)
+    |
+
+UP037 [*] Remove quotes from type annotation
+   --> py\gt\validator\rules\material.py:190:32
+    |
+188 |     )
+189 |
+190 |     def __init__(self, config: "Config", context: HostType) -> None:
+    |                                ^^^^^^^^
+191 |         super().__init__(config, context)
+    |
+help: Remove quotes
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\naming.py:9:1
+   |
+ 8 |   """
+ 9 | / from __future__ import annotations
+10 | |
+11 | | import os
+12 | | import re
+13 | |
+14 | | from .base import AbstractRule, Severity, ValidationResult
+15 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\naming.py:26:1
+   |
+24 |         category: Rule category ``"naming"``.
+25 |         severity: :attr:`Severity.ERROR`.
+26 |     
+   | ^^^^
+27 |     """
+28 |     name     = "naming_convention"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\naming.py:41:1
+   |
+39 |             A :class:`ValidationResult` indicating whether the asset name matches
+40 |             the configured pattern.
+41 |         
+   | ^^^^^^^^
+42 |         """
+43 |         # For Unreal content paths (/Game/...), extract the asset name from the path.
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\naming.py:80:1
+   |
+78 |         category: Rule category ``"naming"``.
+79 |         severity: :attr:`Severity.ERROR`.
+80 |     
+   | ^^^^
+81 |     """
+82 |     name     = "prefix_convention"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\naming.py:95:1
+   |
+93 |             A :class:`ValidationResult` indicating whether the file uses the correct
+94 |             prefix for its extension.
+95 |         
+   | ^^^^^^^^
+96 |         """
+97 |         # For Unreal content paths (/Game/...), extract the asset name from the path.
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\naming.py:112:1
+    |
+110 |             stem, ext = os.path.splitext(filename)
+111 |             ext = ext.lower()
+112 |             
+    | ^^^^^^^^^^^^
+113 |             # Only check prefix requirement if we have an extension (filesystem path)
+114 |             required_prefixes: dict = self.config.get("required_prefixes", {})
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\naming.py:161:1
+    |
+159 |         category: Rule category ``"naming"``.
+160 |         severity: :attr:`Severity.WARNING`.
+161 |     
+    | ^^^^
+162 |     """
+163 |     name     = "filename_length"
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\naming.py:176:1
+    |
+174 |             A :class:`ValidationResult` indicating whether the filename length
+175 |             is within the configured limit.
+176 |         
+    | ^^^^^^^^
+177 |         """
+178 |         filename = os.path.basename(asset_path)
+    |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\niagara.py:7:1
+   |
+ 5 |   """
+ 6 |
+ 7 | / from __future__ import annotations
+ 8 | |
+ 9 | | from .base import AbstractRule, Severity, ValidationResult
+10 | | from ..env import loadUnrealAsset
+11 | | from ..errors import UnrealAPIError
+12 | | from ..registry import registry
+   | |_______________________________^
+13 |
+14 |   @registry.register
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\niagara.py:25:1
+   |
+23 |         category: Rule category ``"niagara"``.
+24 |         severity: :attr:`Severity.ERROR`.
+25 |     
+   | ^^^^
+26 |     """
+27 |     name     = "niagara_fixed_bounds"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\niagara.py:40:1
+   |
+38 |             A :class:`ValidationResult` indicating whether fixed bounds are set,
+39 |             or a passing result when the check is disabled via config.
+40 |         
+   | ^^^^^^^^
+41 |         """
+42 |         if not self.isEnabled():
+   |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> py\gt\validator\rules\overdraw.py:7:1
+  |
+5 |   common overdraw risk indicators.
+6 |   """
+7 | / from .base import AbstractRule, Severity, ValidationResult
+8 | | from ..registry import registry
+9 | | from ..env import HAS_UNREAL
+  | |____________________________^
+  |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\static_mesh.py:9:1
+   |
+ 8 |   """
+ 9 | / from __future__ import annotations
+10 | |
+11 | | from .base import AbstractRule, Severity, ValidationResult
+12 | | from ..env import loadUnrealAsset
+13 | | from ..errors import UnrealAPIError
+14 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\static_mesh.py:25:1
+   |
+23 |         category: Rule category ``"static_mesh"``.
+24 |         severity: :attr:`Severity.ERROR`.
+25 |     
+   | ^^^^
+26 |     """
+27 |     name     = "static_mesh_lod_count"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\static_mesh.py:40:1
+   |
+38 |             A :class:`ValidationResult` indicating whether the LOD count is within
+39 |             the configured minimum and maximum bounds.
+40 |         
+   | ^^^^^^^^
+41 |         """
+42 |         try:
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\static_mesh.py:90:1
+   |
+88 |         category: Rule category ``"static_mesh"``.
+89 |         severity: :attr:`Severity.WARNING`.
+90 |     
+   | ^^^^
+91 |     """
+92 |     name     = "static_mesh_material_slots"
+   |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\static_mesh.py:105:1
+    |
+103 |             A :class:`ValidationResult` indicating whether the number of material
+104 |             slots is within the configured limit.
+105 |         
+    | ^^^^^^^^
+106 |         """
+107 |         try:
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\static_mesh.py:150:1
+    |
+148 |         category: Rule category ``"static_mesh"``.
+149 |         severity: :attr:`Severity.WARNING`.
+150 |     
+    | ^^^^
+151 |     """
+152 |     name     = "static_mesh_bounds"
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\static_mesh.py:165:1
+    |
+163 |             A :class:`ValidationResult` indicating whether the bounding box extent
+164 |             is within the configured limit.
+165 |         
+    | ^^^^^^^^
+166 |         """
+167 |         try:
+    |
+help: Remove whitespace from blank line
+
+invalid-syntax: Expected class, function definition or async function definition after decorator
+  --> py\gt\validator\rules\tests\test_context_aware_rules.py:62:1
+   |
+61 |         @registry.register
+62 |             class StandaloneRule(AbstractRule):
+   | ^^^^^^^^^^^^
+63 |                 name = "standalone_rule"
+64 |                 category = "standalone"
+   |
+
+W293 Blank line contains whitespace
+  --> py\gt\validator\rules\tests\test_context_aware_rules.py:76:1
+   |
+75 |         registry.discover()
+76 |         
+   | ^^^^^^^^
+77 |         # Test UNREAL context
+78 |         unreal_rules = registry.getRules(context=HostType.UNREAL)
+   |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+  --> py\gt\validator\rules\tests\test_context_aware_rules.py:81:1
+   |
+79 |         self.assertEqual(len(unreal_rules), 1)
+80 |         self.assertEqual(unreal_rules[0].name, "unreal_rule")
+81 |         
+   | ^^^^^^^^
+82 |         # Test STANDALONE context
+83 |         standalone_rules = registry.getRules(context=HostType.STANDALONE)
+   |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+  --> py\gt\validator\rules\tests\test_context_aware_rules.py:86:1
+   |
+84 |         self.assertEqual(len(standalone_rules), 1)
+85 |         self.assertEqual(standalone_rules[0].name, "standalone_rule")
+86 |         
+   | ^^^^^^^^
+87 |         # Test NONE context (no filter)
+88 |         all_rules = registry.getRules()
+   |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\rules\tests\test_context_aware_rules.py:108:1
+    |
+107 |         registry.discover()
+108 |         
+    | ^^^^^^^^
+109 |         # Should not raise an error
+110 |         rules = registry.getRules(context=HostType.UNREAL)
+    |
+help: Remove whitespace from blank line
+
+invalid-syntax: Expected a statement
+   --> py\gt\validator\rules\tests\test_context_aware_rules.py:134:1
+    |
+134 | if __name__ == "__main__":
+    | ^
+135 |     unittest.main()
+    |
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\tests\test_host_type_detection.py:45:1
+   |
+43 |         self.assertEqual(HostType.UNREAL, "unreal")
+44 |         self.assertEqual(HostType.UNREAL, HostType.UNREAL)
+45 |         
+   | ^^^^^^^^
+46 |         # Test hash
+47 |         self.assertEqual(hash(HostType.UNREAL), hash("unreal"))
+   |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\tests\test_runner_context.py:5:1
+   |
+ 3 |   This module contains tests for the ValidationRunner's context handling.
+ 4 |   """
+ 5 | / from __future__ import annotations
+ 6 | |
+ 7 | | import unittest
+ 8 | | from unittest.mock import Mock, patch
+ 9 | |
+10 | | from gt.runtime import HostType
+11 | | from ..base import AbstractRule, Severity
+12 | | from ..registry import registry
+13 | | from ..runner import ValidationRunner
+   | |_____________________________________^
+   |
+help: Organize imports
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\tests\test_runner_context.py:34:40
+   |
+32 |             context = HostType.UNREAL
+33 |
+34 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                        ^^^^^^^^
+35 |                 super().__init__(config)
+36 |                 self.context = context
+   |
+help: Remove quotes
+
+F821 Undefined name `Config`
+  --> py\gt\validator\rules\tests\test_runner_context.py:34:41
+   |
+32 |             context = HostType.UNREAL
+33 |
+34 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                         ^^^^^^
+35 |                 super().__init__(config)
+36 |                 self.context = context
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\tests\test_runner_context.py:56:40
+   |
+54 |             context = HostType.UNREAL
+55 |
+56 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                        ^^^^^^^^
+57 |                 super().__init__(config)
+58 |                 self.context = context
+   |
+help: Remove quotes
+
+F821 Undefined name `Config`
+  --> py\gt\validator\rules\tests\test_runner_context.py:56:41
+   |
+54 |             context = HostType.UNREAL
+55 |
+56 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                         ^^^^^^
+57 |                 super().__init__(config)
+58 |                 self.context = context
+   |
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\tests\test_runner_context.py:65:1
+   |
+63 |         registry.discover()
+64 |         runner = ValidationRunner(self.config)
+65 |         
+   | ^^^^^^^^
+66 |         # Check that the rule was instantiated with the correct context
+67 |         self.assertEqual(len(runner.rules), 1)
+   |
+help: Remove whitespace from blank line
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\tests\test_runner_context.py:79:40
+   |
+77 |             context = HostType.UNREAL
+78 |
+79 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                        ^^^^^^^^
+80 |                 super().__init__(config)
+81 |                 self.context = context
+   |
+help: Remove quotes
+
+F821 Undefined name `Config`
+  --> py\gt\validator\rules\tests\test_runner_context.py:79:41
+   |
+77 |             context = HostType.UNREAL
+78 |
+79 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                         ^^^^^^
+80 |                 super().__init__(config)
+81 |                 self.context = context
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\tests\test_runner_context.py:93:40
+   |
+91 |             context = HostType.STANDALONE
+92 |
+93 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                        ^^^^^^^^
+94 |                 super().__init__(config)
+95 |                 self.context = context
+   |
+help: Remove quotes
+
+F821 Undefined name `Config`
+  --> py\gt\validator\rules\tests\test_runner_context.py:93:41
+   |
+91 |             context = HostType.STANDALONE
+92 |
+93 |             def __init__(self, config: "Config", context: HostType) -> None:
+   |                                         ^^^^^^
+94 |                 super().__init__(config)
+95 |                 self.context = context
+   |
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\tests\test_runner_context.py:101:1
+    |
+100 |         registry.discover()
+101 |         
+    | ^^^^^^^^
+102 |         # Test with UNREAL context
+103 |         runner = ValidationRunner(self.config)
+    |
+help: Remove whitespace from blank line
+
+W293 [*] Blank line contains whitespace
+   --> py\gt\validator\rules\tests\test_runner_context.py:105:1
+    |
+103 |         runner = ValidationRunner(self.config)
+104 |         self.assertEqual(len(runner.rules), 2)
+105 |         
+    | ^^^^^^^^
+106 |         # Test with STANDALONE context
+107 |         runner_standalone = ValidationRunner(self.config)
+    |
+help: Remove whitespace from blank line
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> py\gt\validator\rules\texture.py:8:1
+   |
+ 7 |   """
+ 8 | / from __future__ import annotations
+ 9 | |
+10 | | from .base import AbstractRule, Severity, ValidationResult
+11 | | from ..env import loadUnrealAsset
+12 | | from ..errors import UnrealAPIError
+13 | | from ..registry import registry
+   | |_______________________________^
+   |
+help: Organize imports
+
+F401 [*] `..errors.UnrealAPIError` imported but unused
+  --> py\gt\validator\rules\texture.py:12:22
+   |
+10 | from .base import AbstractRule, Severity, ValidationResult
+11 | from ..env import loadUnrealAsset
+12 | from ..errors import UnrealAPIError
+   |                      ^^^^^^^^^^^^^^
+13 | from ..registry import registry
+   |
+help: Remove unused import: `..errors.UnrealAPIError`
+
+D107 Missing docstring in `__init__`
+  --> py\gt\validator\rules\texture.py:32:9
+   |
+30 |     context = None  # Type: HostType
+31 |
+32 |     def __init__(self, config: "Config", context) -> None:
+   |         ^^^^^^^^
+33 |         super().__init__(config)
+34 |         self.context = context
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> py\gt\validator\rules\texture.py:32:32
+   |
+30 |     context = None  # Type: HostType
+31 |
+32 |     def __init__(self, config: "Config", context) -> None:
+   |                                ^^^^^^^^
+33 |         super().__init__(config)
+34 |         self.context = context
+   |
+help: Remove quotes
+
+F821 Undefined name `Config`
+  --> py\gt\validator\rules\texture.py:32:33
+   |
+30 |     context = None  # Type: HostType
+31 |
+32 |     def __init__(self, config: "Config", context) -> None:
+   |                                 ^^^^^^
+33 |         super().__init__(config)
+34 |         self.context = context
+   |
+
+F821 Undefined name `unreal`
+  --> py\gt\validator\rules\texture.py:49:34
+   |
+47 |         asset = loadUnrealAsset(asset_path)
+48 |
+49 |         if not isinstance(asset, unreal.Texture2D):
+   |                                  ^^^^^^
+50 |             return self._makeSkipped(asset_path, f"Not a Texture2D (got {type(asset).__name__}).")
+   |
+
+W293 [*] Blank line contains whitespace
+  --> py\gt\validator\rules\texture.py:96:1
+   |
+94 |         category: Rule category ``"texture"``.
+95 |         severity: :attr:`Severity.WARNING`.
+96 |     
+   | ^^^^
+97 |     """
+98 |     name = "texture_compression"
+   |
+help: Remove whitespace from blank line
+
+D107 Missing docstring in `__init__`
+   --> py\gt\validator\rules\texture.py:103:9
+    |
+101 |     context = None  # Type: HostType
+102 |
+103 |     def __init__(self, config: "Config", context) -> None:
+    |         ^^^^^^^^
+104 |         super().__init__(config)
+105 |         self.context = context
+    |
+
+UP037 [*] Remove quotes from type annotation
+   --> py\gt\validator\rules\texture.py:103:32
+    |
+101 |     context = None  # Type: HostType
+102 |
+103 |     def __init__(self, config: "Config", context) -> None:
+    |                                ^^^^^^^^
+104 |         super().__init__(config)
+105 |         self.context = context
+    |
+help: Remove quotes
+
+F821 Undefined name `Config`
+   --> py\gt\validator\rules\texture.py:103:33
+    |
+101 |     context = None  # Type: HostType
+102 |
+103 |     def __init__(self, config: "Config", context) -> None:
+    |                                 ^^^^^^
+104 |         super().__init__(config)
+105 |         self.context = context
+    |
+
+F821 Undefined name `unreal`
+   --> py\gt\validator\rules\texture.py:120:34
+    |
+118 |         asset = loadUnrealAsset(asset_path)
+119 |
+120 |         if not isinstance(asset, unreal.Texture2D):
+    |                                  ^^^^^^
+121 |             return self._makeSkipped(asset_path, f"Not a Texture2D (got {type(asset).__name__}).")
+    |
+
+F821 Undefined name `unreal`
+   --> py\gt\validator\rules\texture.py:138:49
+    |
+136 |             )
+137 |
+138 |             if is_normal_map and compression != unreal.TextureCompressionSettings.TC_NORMALMAP:
+    |                                                 ^^^^^^
+139 |                 return self._makeResult(
+140 |                     asset_path, passed=False,
+    |
+
+W293 Blank line contains whitespace
+  --> py\gt\validator\runner.py:33:1
+   |
+31 |     configuration, and runs them against assets in a directory — optionally
+32 |     using a thread pool for parallel processing.
+33 |     
+   | ^^^^
+34 |     """
+   |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+  --> py\gt\validator\runner.py:65:1
+   |
+63 |         self.context   = context
+64 |         self.allowlist = allowlist
+65 |         
+   | ^^^^^^^^
+66 |         # Set default max_workers if not provided
+67 |         if max_workers is None:
+   |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+  --> py\gt\validator\runner.py:71:1
+   |
+69 |             if max_workers == 0:
+70 |                 max_workers = os.cpu_count() or 4
+71 |                 
+   | ^^^^^^^^^^^^^^^^
+72 |         self.max_workers = max_workers
+   |
+help: Remove whitespace from blank line
+
+invalid-syntax: Expected an identifier
+  --> py\gt\validator\runner.py:86:21
+   |
+84 |                         "(category=%r, severity=%r). Registered: %s",
+85 |                         category, severity, list(registry.listRules().keys()).
+86 |                     )
+   |                     ^
+87 |                 # Get current context for context-aware rules
+88 |                 current_context = HostType.UNREAL if context is None else context
+   |
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:104:1
+    |
+102 |         Returns:
+103 |             A list of :class:`ValidationResult` objects, one per rule.
+104 |         
+    | ^^^^^^^^
+105 |         """
+106 |         results: list[ValidationResult] = []
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:107:1
+    |
+105 |         """
+106 |         results: list[ValidationResult] = []
+107 |         
+    | ^^^^^^^^
+108 |         # Check if asset is allowlisted
+109 |         if self.allowlist and self.allowlist.isAllowed(self.category or "", asset_path):
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:112:1
+    |
+110 |             logger.debug(f"[ValidationRunner] Asset {asset_path} is allowlisted")
+111 |             return [self._makeSkippedResult(asset_path, "Asset is allowlisted")]
+112 |             
+    | ^^^^^^^^^^^^
+113 |         for rule in self.rules:
+114 |             t0 = time.perf_counter()
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:152:1
+    |
+150 |         Returns:
+151 |             A failed :class:`ValidationResult` compatible with report formatters.
+152 |         
+    | ^^^^^^^^
+153 |         """
+154 |         rule_name = getattr(rule, "name", "") or type(rule).__name__
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:200:1
+    |
+198 |         t0 = time.perf_counter()
+199 |         all_results: list[ValidationResult] = []
+200 |         
+    | ^^^^^^^^
+201 |         # Process assets in parallel if max_workers > 1
+202 |         if self.max_workers > 1:
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:227:1
+    |
+225 |             for asset_path in asset_paths:
+226 |                 all_results.extend(self.validateAsset(asset_path))
+227 |                 
+    | ^^^^^^^^^^^^^^^^
+228 |         duration = (time.perf_counter() - t0) * 1000
+229 |         return ValidationReport(
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:267:1
+    |
+265 |         seen: set[str] = set()
+266 |         assets: list[str] = []
+267 |         
+    | ^^^^^^^^
+268 |         # Collect unique assets from folders
+269 |         for folder in folders:
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:277:1
+    |
+275 |             except Exception as e:
+276 |                 logger.error(f"[Runner] Failed to collect assets from {folder}: {e}")
+277 |                 
+    | ^^^^^^^^^^^^^^^^
+278 |         self.last_run_cancelled = False
+279 |         hooks_enabled = (
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:312:1
+    |
+310 |         all_results: list[ValidationResult] = []
+311 |         processed_assets = 0
+312 |         
+    | ^^^^^^^^
+313 |         if self.max_workers == 1 or hooks_enabled:
+314 |             for asset_path in assets:
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:395:1
+    |
+393 |         Returns:
+394 |             A :class:`ValidationReport` aggregating all rule results.
+395 |         
+    | ^^^^^^^^
+396 |         """
+397 |         from . import __version__
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:399:1
+    |
+397 |         from . import __version__
+398 |         t0 = time.perf_counter()
+399 |         
+    | ^^^^^^^^
+400 |         # Collect assets from directory
+401 |         try:
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:406:1
+    |
+404 |             logger.error(f"[Runner] Failed to collect assets from {directory}: {e}")
+405 |             raise
+406 |             
+    | ^^^^^^^^^^^^
+407 |         self.last_run_cancelled = False
+408 |         hooks_enabled = (
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:441:1
+    |
+439 |         all_results: list[ValidationResult] = []
+440 |         processed_assets = 0
+441 |         
+    | ^^^^^^^^
+442 |         if self.max_workers == 1 or hooks_enabled:
+443 |             for asset_path in assets:
+    |
+help: Remove whitespace from blank line
+
+W293 Blank line contains whitespace
+   --> py\gt\validator\runner.py:511:1
+    |
+509 |             ValueError: If directory is neither a valid filesystem directory
+510 |                 nor a resolvable Unreal content path.
+511 |         
+    | ^^^^^^^^
+512 |         """
+513 |         from .env import HAS_UNREAL
+    |
+help: Remove whitespace from blank line
+
+Found 189 errors.
+[*] 132 fixable with the `--fix` option.

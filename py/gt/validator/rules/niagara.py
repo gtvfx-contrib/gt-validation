@@ -6,10 +6,11 @@ Rules:
 
 from __future__ import annotations
 
-from .base import AbstractRule, Severity, ValidationResult
 from ..env import loadUnrealAsset
 from ..errors import UnrealAPIError
 from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
+
 
 @registry.register
 class NiagaraFixedBoundsRule(AbstractRule):
@@ -22,9 +23,10 @@ class NiagaraFixedBoundsRule(AbstractRule):
         name: Rule identifier ``"niagara_fixed_bounds"``.
         category: Rule category ``"niagara"``.
         severity: :attr:`Severity.ERROR`.
-    
+
     """
-    name     = "niagara_fixed_bounds"
+
+    name = "niagara_fixed_bounds"
     category = "niagara"
     severity = Severity.ERROR
 
@@ -37,11 +39,12 @@ class NiagaraFixedBoundsRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether fixed bounds are set,
             or a passing result when the check is disabled via config.
-        
+
         """
         if not self.isEnabled():
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message="Fixed bounds check disabled via config.",
                 asset_class="NiagaraSystem",
             )
@@ -61,7 +64,8 @@ class NiagaraFixedBoundsRule(AbstractRule):
             fixed_bounds = asset.get_editor_property("fixed_bounds")
             if not fixed_bounds:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message="Niagara system does not have fixed bounds set.",
                     asset_class="NiagaraSystem",
                     fix_hint=(
@@ -70,7 +74,8 @@ class NiagaraFixedBoundsRule(AbstractRule):
                     ),
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message="Niagara system has fixed bounds configured.",
                 asset_class="NiagaraSystem",
             )

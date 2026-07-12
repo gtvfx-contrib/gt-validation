@@ -6,12 +6,13 @@ Rules:
     StaticMeshBoundsRule: Validates the bounding box extent is within the limit.
 
 """
+
 from __future__ import annotations
 
-from .base import AbstractRule, Severity, ValidationResult
 from ..env import loadUnrealAsset
 from ..errors import UnrealAPIError
 from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
 
 
 @registry.register
@@ -22,9 +23,10 @@ class StaticMeshLODCountRule(AbstractRule):
         name: Rule identifier ``"static_mesh_lod_count"``.
         category: Rule category ``"static_mesh"``.
         severity: :attr:`Severity.ERROR`.
-    
+
     """
-    name     = "static_mesh_lod_count"
+
+    name = "static_mesh_lod_count"
     category = "static_mesh"
     severity = Severity.ERROR
 
@@ -37,7 +39,7 @@ class StaticMeshLODCountRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the LOD count is within
             the configured minimum and maximum bounds.
-        
+
         """
         try:
             asset = loadUnrealAsset(asset_path)
@@ -55,7 +57,8 @@ class StaticMeshLODCountRule(AbstractRule):
 
             if lod_count < min_lods:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=f"StaticMesh has {lod_count} LOD(s) — minimum required is {min_lods}.",
                     asset_class="StaticMesh",
                     fix_hint=(
@@ -65,13 +68,15 @@ class StaticMeshLODCountRule(AbstractRule):
                 )
             if lod_count > max_lods:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=f"StaticMesh has {lod_count} LOD(s) — maximum allowed is {max_lods}.",
                     asset_class="StaticMesh",
                     fix_hint=f"Remove {lod_count - max_lods} LOD level(s) to reduce to {max_lods}.",
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message=f"StaticMesh has {lod_count} LOD(s) — within [{min_lods}, {max_lods}].",
                 asset_class="StaticMesh",
             )
@@ -87,9 +92,10 @@ class StaticMeshMaterialSlotRule(AbstractRule):
         name: Rule identifier ``"static_mesh_material_slots"``.
         category: Rule category ``"static_mesh"``.
         severity: :attr:`Severity.WARNING`.
-    
+
     """
-    name     = "static_mesh_material_slots"
+
+    name = "static_mesh_material_slots"
     category = "static_mesh"
     severity = Severity.WARNING
 
@@ -102,7 +108,7 @@ class StaticMeshMaterialSlotRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the number of material
             slots is within the configured limit.
-        
+
         """
         try:
             asset = loadUnrealAsset(asset_path)
@@ -122,16 +128,17 @@ class StaticMeshMaterialSlotRule(AbstractRule):
 
             if slot_count > max_slots:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=f"StaticMesh has {slot_count} material slots — maximum is {max_slots}.",
                     asset_class="StaticMesh",
                     fix_hint="Merge materials in your DCC tool to reduce the material slot count.",
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message=(
-                    f"StaticMesh has {slot_count} material slot(s) — "
-                    f"within limit of {max_slots}."
+                    f"StaticMesh has {slot_count} material slot(s) — within limit of {max_slots}."
                 ),
                 asset_class="StaticMesh",
             )
@@ -147,9 +154,10 @@ class StaticMeshBoundsRule(AbstractRule):
         name: Rule identifier ``"static_mesh_bounds"``.
         category: Rule category ``"static_mesh"``.
         severity: :attr:`Severity.WARNING`.
-    
+
     """
-    name     = "static_mesh_bounds"
+
+    name = "static_mesh_bounds"
     category = "static_mesh"
     severity = Severity.WARNING
 
@@ -162,7 +170,7 @@ class StaticMeshBoundsRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the bounding box extent
             is within the configured limit.
-        
+
         """
         try:
             asset = loadUnrealAsset(asset_path)
@@ -185,23 +193,21 @@ class StaticMeshBoundsRule(AbstractRule):
 
             if max_component > max_uu:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=(
                         f"Bounds extent {max_component:.1f} UU exceeds limit {max_uu} UU "
                         f"(X={extent_x:.1f}, Y={extent_y:.1f}, Z={extent_z:.1f})."
                     ),
                     asset_class="StaticMesh",
                     fix_hint=(
-                        "Check the mesh scale — it may have been imported "
-                        "with incorrect units."
+                        "Check the mesh scale — it may have been imported with incorrect units."
                     ),
                 )
             return self._makeResult(
-                asset_path, passed=True,
-                message=(
-                    f"Bounds extent {max_component:.1f} UU — within limit "
-                    f"of {max_uu} UU."
-                ),
+                asset_path,
+                passed=True,
+                message=(f"Bounds extent {max_component:.1f} UU — within limit of {max_uu} UU."),
                 asset_class="StaticMesh",
             )
         except Exception as exc:  # noqa: BLE001 - Unreal bridge safety

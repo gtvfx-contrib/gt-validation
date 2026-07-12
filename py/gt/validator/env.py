@@ -15,8 +15,9 @@ Example::
         ...
 
 """
+
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .errors import UnrealAPIError
 
@@ -41,6 +42,7 @@ def _detectUnreal() -> tuple[bool, str | None]:
     """
     try:
         import unreal  # noqa: F401
+
         ver = unreal.SystemLibrary.get_engine_version()
         return True, ver[:5]
     except Exception:
@@ -54,14 +56,15 @@ HAS_UNREAL, UNREAL_VERSION = _detectUnreal()
 
 # ── Asset class name constants ────────────────────────────────────────────── #
 ASSET_CLASS_STATIC_MESH = "StaticMesh"
-ASSET_CLASS_TEXTURE_2D  = "Texture2D"
-ASSET_CLASS_MATERIAL    = "Material"
-ASSET_CLASS_NIAGARA     = "NiagaraSystem"
-ASSET_CLASS_SKELETON    = "Skeleton"
-ASSET_CLASS_ANIM        = "AnimSequence"
+ASSET_CLASS_TEXTURE_2D = "Texture2D"
+ASSET_CLASS_MATERIAL = "Material"
+ASSET_CLASS_NIAGARA = "NiagaraSystem"
+ASSET_CLASS_SKELETON = "Skeleton"
+ASSET_CLASS_ANIM = "AnimSequence"
 
 
 # ── Path helpers ──────────────────────────────────────────────────────────── #
+
 
 def getContentDir() -> str | None:
     """Return the absolute disk path to the project's Content directory.
@@ -72,6 +75,7 @@ def getContentDir() -> str | None:
 
         >>> getContentDir()
         'C:/MyProject/Content/'   # only inside the Editor
+
     """
     if not HAS_UNREAL:
         return None
@@ -87,6 +91,7 @@ def getProjectDir() -> str | None:
 
         >>> getProjectDir()
         'C:/MyProject/'   # only inside the Editor
+
     """
     if not HAS_UNREAL:
         return None
@@ -94,8 +99,7 @@ def getProjectDir() -> str | None:
 
 
 def getSelectedAssets() -> list:
-    """
-    Return the list of assets currently selected in the Content Browser.
+    """Return the list of assets currently selected in the Content Browser.
 
     Returns an empty list when running outside Unreal or when no assets are
     selected.  Inside the Editor, each element is an ``unreal.Object``.
@@ -105,6 +109,7 @@ def getSelectedAssets() -> list:
         assets = getSelectedAssets()
         for asset in assets:
             print(asset.get_path_name())
+
     """
     if not HAS_UNREAL:
         return []
@@ -195,12 +200,10 @@ def requireUnreal(msg: str = "") -> None:
     Raises:
         ImportError: If Unreal Engine is not available in the current
             Python environment.
-    
+
     """
     if not HAS_UNREAL:
-        raise ImportError(
-            msg or "This feature requires Unreal Engine's Python environment."
-        )
+        raise ImportError(msg or "This feature requires Unreal Engine's Python environment.")
 
 
 def loadUnrealAsset(asset_path: str) -> Any:
@@ -221,19 +224,16 @@ def loadUnrealAsset(asset_path: str) -> Any:
     Raises:
         UnrealAPIError: If Unreal is unavailable, if the API call raises,
             or if the returned asset is ``None``.
-    
+
     """
     if not HAS_UNREAL:
-        raise UnrealAPIError(
-            f"Unreal Engine is not available; cannot load '{asset_path}'."
-        )
+        raise UnrealAPIError(f"Unreal Engine is not available; cannot load '{asset_path}'.")
     try:
         import unreal  # noqa: PLC0415 – deferred to avoid top-level ImportError
+
         obj = unreal.EditorAssetLibrary.load_asset(asset_path)
     except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-        raise UnrealAPIError(
-            f"Unreal API error loading '{asset_path}': {exc}"
-        ) from exc
+        raise UnrealAPIError(f"Unreal API error loading '{asset_path}': {exc}") from exc
     if obj is None:
         raise UnrealAPIError(
             f"Asset '{asset_path}' could not be loaded (EditorAssetLibrary returned None)."

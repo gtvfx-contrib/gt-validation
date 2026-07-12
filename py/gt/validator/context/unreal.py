@@ -1,16 +1,16 @@
-﻿"""Unreal Engine :class:`ValidationContext` implementation.
+"""Unreal Engine :class:`ValidationContext` implementation.
 
 Collects asset metadata via the Unreal Python API.
 Only usable when running inside Unreal Editor.
 
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from .base import ValidationContext, AssetMetadata
 from ..env import HAS_UNREAL
+from .base import AssetMetadata, ValidationContext
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,16 @@ class UnrealContext(ValidationContext):
     """
 
     def __init__(self, directory: str = "/Game/") -> None:
+        """Initialise the Unreal context with the specified content directory.
+
+        Args:
+            directory: Unreal content path to enumerate (default: ``"/Game/"``).
+
+        Raises:
+            ImportError: If called outside the Unreal Editor
+                (``HAS_UNREAL`` is ``False``).
+
+        """
         if not HAS_UNREAL:
             raise ImportError(
                 "UnrealContext requires the Unreal Editor to be running. "
@@ -71,9 +81,7 @@ class UnrealContext(ValidationContext):
             A list of :class:`AssetMetadata` objects; one per asset found.
 
         """
-        asset_paths = unreal.EditorAssetLibrary.list_assets(
-            self.directory, recursive=True
-        )
+        asset_paths = unreal.EditorAssetLibrary.list_assets(self.directory, recursive=True)
         results: list[AssetMetadata] = []
         for ap in asset_paths:
             meta = self._buildMetadata(ap)
@@ -104,7 +112,7 @@ class UnrealContext(ValidationContext):
             return None
 
         asset_class: str = str(data.asset_class_path.asset_name)
-        asset_name:  str = str(data.asset_name)
+        asset_name: str = str(data.asset_name)
 
         return AssetMetadata(
             path=asset_path,
@@ -115,4 +123,5 @@ class UnrealContext(ValidationContext):
         )
 
     def __repr__(self) -> str:
+        """Return a string representation of the Unreal context."""
         return f"UnrealContext(directory={self.directory!r})"

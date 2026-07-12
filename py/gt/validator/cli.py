@@ -21,6 +21,7 @@ Exit codes:
     2 — configuration error or invalid arguments
 
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,19 +29,18 @@ import os
 import sys
 
 from .config import Config
+from .env import HAS_UNREAL
+from .reporting.formatters import ConsoleFormatter, HTMLFormatter, JSONFormatter
+from .reporting.models import ValidationReport
 from .rules.base import Severity
 from .runner import ValidationRunner
-from .reporting.formatters import ConsoleFormatter, JSONFormatter, HTMLFormatter
-from .reporting.models import ValidationReport
-from .env import HAS_UNREAL
-
 
 _VERSION = "1.0.0"
 
 _FORMATTERS = {
     "console": ConsoleFormatter,
-    "json":    JSONFormatter,
-    "html":    HTMLFormatter,
+    "json": JSONFormatter,
+    "html": HTMLFormatter,
 }
 
 
@@ -183,7 +183,7 @@ def _dispatchToUnreal(argv: list[str]) -> int:
     env["VALIDATOR_SESSION_DIR"] = str(Path(__file__).parents[1])
     env.setdefault("VALIDATOR_MAX_WORKERS", "1")  # Unreal thread safety default
 
-    print(f"[CLI] Dispatching to Unreal Editor...")
+    print("[CLI] Dispatching to Unreal Editor...")
     print(f"[CLI]   Unreal cmd : {unreal_cmd}")
     print(f"[CLI]   Project    : {uproject}")
     print(f"[CLI]   Script     : {dispatch_script}")
@@ -249,7 +249,7 @@ def buildParser() -> argparse.ArgumentParser:
 
     Returns:
         A configured :class:`argparse.ArgumentParser` instance.
-    
+
     """
     parser = argparse.ArgumentParser(
         prog="validator",
@@ -274,29 +274,33 @@ exit codes:
   0   all checks passed (or only warnings/infos)
   1   at least one ERROR-severity failure
   2   configuration or argument error
-  
+
 """,
     )
     parser.add_argument(
-        "--directory", "-d",
+        "--directory",
+        "-d",
         metavar="PATH",
         required=False,
         help="Root directory to validate (recursively).",
     )
     parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         default=None,
         metavar="FILE",
         help="Path to a JSON config file.",
     )
     parser.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["console", "json", "html"],
         default=None,
         help="Output format (default: console, or VALIDATOR_FORMAT env var).",
     )
     parser.add_argument(
-        "--output-dir", "-o",
+        "--output-dir",
+        "-o",
         default=None,
         metavar="DIR",
         help="Directory to write report file (console writes to stdout).",
@@ -371,7 +375,7 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         ``0`` if all checks passed, ``1`` if any ERROR-severity rule failed,
         ``2`` if there was a configuration or argument error.
-    
+
     """
     import logging
 
@@ -385,6 +389,7 @@ def main(argv: list[str] | None = None) -> int:
     # Pre-flight commands run locally without loading config or launching Unreal.
     if args.listRules:
         from .registry import registry
+
         registry.discover()
         rules = registry.listRules()
         if not rules:
@@ -411,8 +416,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     log_level = (
-        os.environ.get("VALIDATOR_LOG_LEVEL")
-        or config.get("log_level", "WARNING")
+        os.environ.get("VALIDATOR_LOG_LEVEL") or config.get("log_level", "WARNING")
     ).upper()
     logging.basicConfig(level=getattr(logging, log_level, logging.WARNING))
 
@@ -421,9 +425,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     fmt = (
-        args.format
-        or os.environ.get("VALIDATOR_FORMAT")
-        or config.get("report_format", "console")
+        args.format or os.environ.get("VALIDATOR_FORMAT") or config.get("report_format", "console")
     )
     output_dir = args.output_dir or os.environ.get("VALIDATOR_OUTPUT_DIR")
     severity_filter = Severity(args.severity) if args.severity else None
@@ -439,10 +441,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report: ValidationReport = runner.runAndReport(args.directory)
         if getattr(runner, "last_run_cancelled", False):
-            print(
-                "[CLI] Validation cancelled by user. "
-                "Partial report shown below."
-            )
+            print("[CLI] Validation cancelled by user. Partial report shown below.")
 
         # Apply display-level filters — does not affect which rules ran.
         display_results = list(report.results)
@@ -469,6 +468,7 @@ def main(argv: list[str] | None = None) -> int:
             os.makedirs(output_dir, exist_ok=True)
             ext = {"json": ".json", "html": ".html"}.get(fmt, ".txt")
             from datetime import datetime
+
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
             out_path = os.path.join(output_dir, f"validation_report_{ts}{ext}")
             with open(out_path, "w", encoding="utf-8") as fh:
@@ -489,6 +489,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[CLI] ERROR: {exc}", file=sys.stderr)
         if os.environ.get("VALIDATOR_DEBUG"):
             import traceback
+
             traceback.print_exc()
         return 2
 

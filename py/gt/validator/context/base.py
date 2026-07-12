@@ -11,6 +11,7 @@ The same rule implementation can run in:
 - Unit tests (mock context)
 
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -32,8 +33,9 @@ class AssetMetadata:
         asset_class: Unreal asset class name (e.g. ``"StaticMesh"``); empty
             when unknown.
         properties: Arbitrary key/value metadata returned by the context.
-    
+
     """
+
     path: str = ""
     name: str = ""
     extension: str = ""
@@ -52,7 +54,7 @@ class ValidationContext(ABC):
 
     A context knows how to collect :class:`AssetMetadata` for a given path.
     Concrete implementations: :class:`FilesystemContext`, :class:`UnrealContext`.
-    
+
     """
 
     @abstractmethod
@@ -64,7 +66,7 @@ class ValidationContext(ABC):
 
         Returns:
             A populated :class:`AssetMetadata` instance for the asset.
-        
+
         """
         ...
 
@@ -74,4 +76,5 @@ class ValidationContext(ABC):
         ...
 
     def __repr__(self) -> str:
+        """Return a string representation of the validation context."""
         return f"{type(self).__name__}(available={self.isAvailable()})"

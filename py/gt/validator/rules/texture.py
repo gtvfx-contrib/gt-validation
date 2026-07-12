@@ -5,27 +5,42 @@ Rules:
     TextureCompressionRule: Validates that textures use appropriate compression settings.
 
 """
+
 from __future__ import annotations
 
-from .base import AbstractRule, Severity, ValidationResult
+from ..config import Config
 from ..env import loadUnrealAsset
-from ..errors import UnrealAPIError
 from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
 
 
 @registry.register
 class TextureDimensionRule(AbstractRule):
-    """Validates texture dimensions are power-of-two and within the configured limit.
+    """Validates texture dimensions are power-of-two and within the configured maximum.
 
     Attributes:
         name: Rule identifier ``"texture_dimension"``.
         category: Rule category ``"texture"``.
         severity: :attr:`Severity.ERROR`.
-    
+        context: Required host type for this rule (HostType.UNREAL).
+
     """
-    name     = "texture_dimension"
+
+    name = "texture_dimension"
     category = "texture"
     severity = Severity.ERROR
+    context = None  # Type: HostType
+
+    def __init__(self, config: Config, context) -> None:
+        """Initialise the texture dimension rule.
+
+        Args:
+            config: Layered Config object.
+            context: Validation context instance.
+
+        """
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the dimensions of the given texture asset.
@@ -36,19 +51,17 @@ class TextureDimensionRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the texture dimensions
             are power-of-two and within the configured maximum.
-        
+
         """
-        try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+        import unreal  # noqa: PLC0415
+
+        asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Texture2D):
             return self._makeSkipped(asset_path, f"Not a Texture2D (got {type(asset).__name__}).")
 
         try:
-            width  = asset.blueprint_get_size_x()
+            width = asset.blueprint_get_size_x()
             height = asset.blueprint_get_size_y()
             max_dim: int = self.config.get("max_texture_dimension", 4096)
 
@@ -57,23 +70,21 @@ class TextureDimensionRule(AbstractRule):
 
             issues = []
             if width > max_dim or height > max_dim:
-                issues.append(
-                    f"Dimensions {width}x{height} exceed max {max_dim}x{max_dim}."
-                )
+                issues.append(f"Dimensions {width}x{height} exceed max {max_dim}x{max_dim}.")
             if not isPowerOfTwo(width) or not isPowerOfTwo(height):
-                issues.append(
-                    f"Dimensions {width}x{height} are not powers of two."
-                )
+                issues.append(f"Dimensions {width}x{height} are not powers of two.")
 
             if issues:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=" ".join(issues),
                     asset_class="Texture2D",
                     fix_hint=f"Resize texture to a power-of-two dimension <= {max_dim}px.",
                 )
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message=f"Texture dimensions {width}x{height} are valid.",
                 asset_class="Texture2D",
             )
@@ -91,11 +102,24 @@ class TextureCompressionRule(AbstractRule):
         name: Rule identifier ``"texture_compression"``.
         category: Rule category ``"texture"``.
         severity: :attr:`Severity.WARNING`.
-    
+
     """
-    name     = "texture_compression"
+
+    name = "texture_compression"
     category = "texture"
     severity = Severity.WARNING
+    context = None  # Type: HostType
+
+    def __init__(self, config: Config, context) -> None:
+        """Initialise the texture compression rule.
+
+        Args:
+            config: Layered Config object.
+            context: Validation context instance.
+
+        """
+        super().__init__(config)
+        self.context = context
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the compression settings of the given texture asset.
@@ -106,13 +130,11 @@ class TextureCompressionRule(AbstractRule):
         Returns:
             A :class:`ValidationResult` indicating whether the compression setting
             is appropriate for the detected texture type.
-        
+
         """
-        try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+        import unreal  # noqa: PLC0415
+
+        asset = loadUnrealAsset(asset_path)
 
         if not isinstance(asset, unreal.Texture2D):
             return self._makeSkipped(asset_path, f"Not a Texture2D (got {type(asset).__name__}).")
@@ -126,15 +148,16 @@ class TextureCompressionRule(AbstractRule):
             # Heuristic: detect normal maps by path/name
             path_str = str(asset_path)
             is_normal_map = (
-                "_N." in path_str or
-                "_Normal." in path_str or
-                "_NRM." in path_str or
-                "Normal" in path_str
+                "_N." in path_str
+                or "_Normal." in path_str
+                or "_NRM." in path_str
+                or "Normal" in path_str
             )
 
             if is_normal_map and compression != unreal.TextureCompressionSettings.TC_NORMALMAP:
                 return self._makeResult(
-                    asset_path, passed=False,
+                    asset_path,
+                    passed=False,
                     message=(
                         f"Normal map texture uses compression '{compression}' — "
                         f"should use TC_Normalmap."
@@ -147,7 +170,8 @@ class TextureCompressionRule(AbstractRule):
                 )
 
             return self._makeResult(
-                asset_path, passed=True,
+                asset_path,
+                passed=True,
                 message=f"Texture compression '{compression}' is acceptable.",
                 asset_class="Texture2D",
             )

@@ -14,15 +14,18 @@ Usage::
         ...
 
 """
+
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
+import os
 import pkgutil
-from typing import Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .rules.base import AbstractRule, Severity
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -47,16 +50,17 @@ class RuleRegistry:
 
     """
 
-    _instance: "RuleRegistry | None" = None
-    _rules: "dict[str, Type]" = {}
+    _instance: RuleRegistry | None = None
+    _rules: dict[str, type] = {}
     _discovered: bool = False
 
-    def __new__(cls) -> "RuleRegistry":
+    def __new__(cls) -> RuleRegistry:
+        """Create or return the singleton RuleRegistry instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def register(self, cls: "Type") -> "Type":
+    def register(self, cls: type) -> type:
         """Class decorator — registers a rule class.
 
         Reads ``name``, ``category``, and ``severity`` directly from the class.
@@ -73,51 +77,110 @@ class RuleRegistry:
         if name in self._rules:
             logger.warning(
                 "[Registry] Rule '%s' already registered — overwriting with %s.",
-                name, cls.__name__,
+                name,
+                cls.__name__,
             )
         self._rules[name] = cls
         logger.debug("[Registry] Registered rule '%s' (%s).", name, cls.__name__)
         return cls
 
     def discover(self) -> None:
-        """Auto-discover and import all rule modules in the rules subpackage.
+        """Auto-discover and import all rule modules from configured paths.
+
+        Checks the ``ENVOY_VALIDATION_RULES`` environment variable for multiple
+        paths (separated by ``os.pathsep``). If set, discovers and imports rule
+        modules from each path. If not set, falls back to the default ``rules``
+        subpackage.
 
         Triggers module-level ``@registry.register`` decorators, populating
         the registry without requiring explicit imports.  Subsequent calls are
         no-ops (discovery runs at most once per process).
-        
+
         """
         if self._discovered:
             return
         type(self)._discovered = True
 
-        from . import rules as rules_pkg
-        for _finder, module_name, _is_pkg in pkgutil.iter_modules(rules_pkg.__path__):
+        # Check for ENVOY_VALIDATION_RULES environment variable
+        env_paths = os.environ.get("ENVOY_VALIDATION_RULES")
+        if env_paths:
+            # Split by os.pathsep to get multiple paths
+            paths = env_paths.split(os.pathsep)
+            logger.info("[Registry] Discovering rules from %d configured path(s)", len(paths))
+
+            for path in paths:
+                if not path:
+                    continue
+                self._discover_from_path(path)
+        else:
+            # Fall back to default rules subpackage
+            logger.debug("[Registry] ENVOY_VALIDATION_RULES not set, using default rules package")
+            from . import rules as rules_pkg
+
+            self._discover_from_package(rules_pkg)
+
+    def _discover_from_path(self, path: str) -> None:
+        """Discover and import rule modules from a specific path.
+
+        Args:
+            path: Filesystem path containing rule modules.
+
+        """
+        try:
+            for _finder, module_name, _is_pkg in pkgutil.iter_modules([path]):
+                if module_name == "base":
+                    continue
+                # Import the module dynamically
+                module_path = os.path.join(path, module_name + ".py")
+                if not os.path.exists(module_path):
+                    logger.warning("[Registry] Module file not found at '%s'", module_path)
+                    continue
+                try:
+                    spec = importlib.util.spec_from_file_location(module_name, module_path)
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        logger.debug("[Registry] Discovered module: %s", module.__name__)
+                except ImportError as exc:
+                    logger.warning(
+                        "[Registry] Could not import module from '%s': %s", module_path, exc
+                    )
+        except Exception as exc:
+            logger.warning("[Registry] Error discovering modules from path '%s': %s", path, exc)
+
+    def _discover_from_package(self, package) -> None:
+        """Discover and import rule modules from a package.
+
+        Args:
+            package: Python package object containing rule modules.
+
+        """
+        for _finder, module_name, _is_pkg in pkgutil.iter_modules(package.__path__):
             if module_name == "base":
                 continue
-            full_name = f"{rules_pkg.__name__}.{module_name}"
+            full_name = f"{package.__name__}.{module_name}"
             try:
                 importlib.import_module(full_name)
                 logger.debug("[Registry] Discovered module: %s", full_name)
             except ImportError as exc:
-                logger.warning(
-                    "[Registry] Could not import '%s': %s", full_name, exc
-                )
+                logger.warning("[Registry] Could not import '%s': %s", full_name, exc)
 
     def getRules(
         self,
         category: str | None = None,
         severity=None,
-    ) -> list[Type]:
+        context=None,
+    ) -> list[type]:
         """Return registered rule classes, optionally filtered.
 
         Args:
             category: If provided, only rules with this category are returned.
             severity: If provided, only rules with this severity are returned.
+            context: If provided, only rules with this context are returned.
 
         Returns:
             A list of rule classes matching the given filters.
-        
+
         """
         rules = list(self._rules.values())
         if category:
@@ -125,9 +188,11 @@ class RuleRegistry:
             rules = [r for r in rules if r.category.lower() == cat_lower]
         if severity is not None:
             rules = [r for r in rules if r.severity == severity]
+        if context is not None:
+            rules = [r for r in rules if getattr(r, 'context', None) == context]
         return rules
 
-    def listRules(self) -> dict[str, Type]:
+    def listRules(self) -> dict[str, type]:
         """Return a copy of the rules dict {name: class}."""
         return dict(self._rules)
 
@@ -137,9 +202,11 @@ class RuleRegistry:
         type(self)._discovered = False
 
     def __len__(self) -> int:
+        """Return the number of registered rules."""
         return len(self._rules)
 
     def __repr__(self) -> str:
+        """Return a string representation of the rule registry."""
         return f"RuleRegistry(rules={list(self._rules.keys())})"
 
 

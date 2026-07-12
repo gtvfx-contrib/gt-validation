@@ -18,35 +18,33 @@ from __future__ import annotations
 
 import json
 import re
-
 from datetime import datetime
 
+from ..rules.base import Severity, ValidationResult
 from .models import ValidationReport
 
-from ..rules.base import Severity, ValidationResult
-
 # ── ANSI codes ────────────────────────────────────────────────────────────── #
-_RESET  = "\033[0m"
-_BOLD   = "\033[1m"
-_DIM    = "\033[2m"
-_RED    = "\033[31m"
+_RESET = "\033[0m"
+_BOLD = "\033[1m"
+_DIM = "\033[2m"
+_RED = "\033[31m"
 _YELLOW = "\033[33m"
-_GREEN  = "\033[32m"
-_CYAN   = "\033[36m"
-_WHITE  = "\033[37m"
+_GREEN = "\033[32m"
+_CYAN = "\033[36m"
+_WHITE = "\033[37m"
 
 _ANSI_RE = re.compile(r'\033\[[0-9;]*m')
 
 _SEV_COLOR: dict[Severity, str] = {
-    Severity.ERROR:   _RED,
+    Severity.ERROR: _RED,
     Severity.WARNING: _YELLOW,
-    Severity.INFO:    _CYAN,
+    Severity.INFO: _CYAN,
 }
 
 _SEV_ICON: dict[Severity, str] = {
-    Severity.ERROR:   "✗",
+    Severity.ERROR: "✗",
     Severity.WARNING: "⚠",
-    Severity.INFO:    "ℹ",
+    Severity.INFO: "ℹ",
 }
 
 
@@ -55,6 +53,7 @@ def _groupByAsset(results: list[ValidationResult]) -> dict[str, list[ValidationR
 
     Args:
         results: Flat list of ValidationResult objects.
+
     Returns:
         Ordered dict mapping asset path → list of results for that asset.
 
@@ -82,7 +81,15 @@ class ConsoleFormatter:
             support ANSI (e.g. Unreal Output Log). Defaults to ``True``.
 
     """
+
     def __init__(self, show_passing: bool = False, use_color: bool = True) -> None:
+        """Initialise the terminal formatter.
+
+        Args:
+            show_passing: Include passing results in output (default: ``False``).
+            use_color: Emit ANSI color codes. Defaults to ``True``.
+
+        """
         self.show_passing = show_passing
         self._use_color = use_color
 
@@ -133,7 +140,7 @@ class ConsoleFormatter:
         else:
             for asset_path, results in _groupByAsset(report.results).items():
                 has_failures = any(not r.passed and not r.skipped for r in results)
-                has_skips    = any(r.skipped for r in results)
+                has_skips = any(r.skipped for r in results)
 
                 if not self.show_passing and not has_failures and not has_skips:
                     continue
@@ -151,10 +158,10 @@ class ConsoleFormatter:
         lines.append(_BOLD + "  SUMMARY" + _RESET)
         lines.append("─" * w)
 
-        p  = report.passed
-        f  = report.failed
-        s  = report.skipped
-        e  = report.errors
+        p = report.passed
+        f = report.failed
+        s = report.skipped
+        e = report.errors
         wn = report.warnings
 
         lines.append(
@@ -185,24 +192,15 @@ class ConsoleFormatter:
 
         """
         if r.skipped:
-            return (
-                f"    {_DIM}↷ [SKIP   ] "
-                f"{r.rule_name:<28} {r.message}{_RESET}"
-            )
+            return f"    {_DIM}↷ [SKIP   ] {r.rule_name:<28} {r.message}{_RESET}"
 
         color = _SEV_COLOR.get(r.severity, _WHITE)
-        icon  = _SEV_ICON.get(r.severity, "?")
+        icon = _SEV_ICON.get(r.severity, "?")
 
         if r.passed:
-            return (
-                f"    {_GREEN}✓ [PASS   ] "
-                f"{r.rule_name:<28} {r.message}{_RESET}"
-            )
+            return f"    {_GREEN}✓ [PASS   ] {r.rule_name:<28} {r.message}{_RESET}"
 
-        line = (
-            f"    {color}{icon} [{r.severity.value:<7}] "
-            f"{r.rule_name:<28} {r.message}{_RESET}"
-        )
+        line = f"    {color}{icon} [{r.severity.value:<7}] {r.rule_name:<28} {r.message}{_RESET}"
 
         if r.fix_hint:
             line += f"\n      {_DIM}💡 {r.fix_hint}{_RESET}"
@@ -233,7 +231,15 @@ class JSONFormatter:
             (default: ``False``).
 
     """
+
     def __init__(self, show_passing: bool = False) -> None:
+        """Initialise the JSON formatter.
+
+        Args:
+            show_passing: Include passing results in the ``results`` array
+                (default: ``False``).
+
+        """
         self.show_passing = show_passing
 
     def format(self, report: ValidationReport) -> str:
@@ -247,28 +253,27 @@ class JSONFormatter:
 
         """
         results_data = [
-            self._resultToDict(r) for r in report.results
+            self._resultToDict(r)
+            for r in report.results
             if self.show_passing or not r.passed or r.skipped
         ]
 
         data = {
             "generated_at": datetime.now().isoformat(),
             "tool_version": report.tool_version,
-            "duration_ms":  report.duration_ms,
-            "asset_count":  report.asset_count,
-            "rule_count":   report.rule_count,
-
+            "duration_ms": report.duration_ms,
+            "asset_count": report.asset_count,
+            "rule_count": report.rule_count,
             "summary": {
-                "status":   "FAIL" if report.hasErrors() else "PASS",
-                "total":    report.total,
-                "passed":   report.passed,
-                "failed":   report.failed,
-                "errors":   report.errors,
+                "status": "FAIL" if report.hasErrors() else "PASS",
+                "total": report.total,
+                "passed": report.passed,
+                "failed": report.failed,
+                "errors": report.errors,
                 "warnings": report.warnings,
-                "infos":    report.infos,
-                "skipped":  report.skipped,
+                "infos": report.infos,
+                "skipped": report.skipped,
             },
-
             "results": results_data,
         }
 
@@ -286,17 +291,17 @@ class JSONFormatter:
 
         """
         return {
-            "asset_path":  r.asset_path,
-            "rule_name":   r.rule_name,
-            "category":    r.category,
-            "severity":    r.severity.value,
-            "message":     r.message,
-            "passed":      r.passed,
-            "skipped":     r.skipped,
-            "timestamp":   r.timestamp,
+            "asset_path": r.asset_path,
+            "rule_name": r.rule_name,
+            "category": r.category,
+            "severity": r.severity.value,
+            "message": r.message,
+            "passed": r.passed,
+            "skipped": r.skipped,
+            "timestamp": r.timestamp,
             "duration_ms": r.duration_ms,
             "asset_class": r.asset_class,
-            "fix_hint":    r.fix_hint,
+            "fix_hint": r.fix_hint,
         }
 
 
@@ -316,13 +321,21 @@ class HTMLFormatter:
             (default: ``False``).
 
     """
+
     _SEV_BADGE: dict[str, tuple[str, str]] = {
-        "ERROR":   ("ERROR", "sev-error"),
-        "WARNING": ("WARN",  "sev-warn"),
-        "INFO":    ("INFO",  "sev-info"),
+        "ERROR": ("ERROR", "sev-error"),
+        "WARNING": ("WARN", "sev-warn"),
+        "INFO": ("INFO", "sev-info"),
     }
 
     def __init__(self, show_passing: bool = False) -> None:
+        """Initialise the HTML formatter.
+
+        Args:
+            show_passing: Include passing results in the per-asset tables
+                (default: ``False``).
+
+        """
         self.show_passing = show_passing
 
     def format(self, report: ValidationReport) -> str:
@@ -336,10 +349,10 @@ class HTMLFormatter:
 
         """
         summary_html = self._renderSummary(report)
-        assets_html  = self._renderAssets(report)
-        css          = self._css()
-        now          = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+        assets_html = self._renderAssets(report)
+        css = self._css()
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -382,15 +395,15 @@ class HTMLFormatter:
             An HTML string containing the summary ``<div>`` block.
 
         """
-        p  = report.passed
-        f  = report.failed
-        e  = report.errors
+        p = report.passed
+        f = report.failed
+        e = report.errors
         wn = report.warnings
-        s  = report.skipped
-        t  = report.total
+        s = report.skipped
+        t = report.total
 
         status_class = "status-fail" if report.hasErrors() else "status-pass"
-        status_text  = "❌ FAILED" if report.hasErrors() else "✅ PASSED"
+        status_text = "❌ FAILED" if report.hasErrors() else "✅ PASSED"
 
         header_row = (
             "<tr><th>Total</th><th>Passed</th><th>Failed</th>"
@@ -428,16 +441,14 @@ class HTMLFormatter:
         parts: list[str] = []
 
         for asset_path, results in _groupByAsset(report.results).items():
-            failures  = [r for r in results if not r.passed and not r.skipped]
+            failures = [r for r in results if not r.passed and not r.skipped]
             has_error = any(r.severity is Severity.ERROR for r in failures)
             label_cls = "asset-error" if has_error else ("asset-warn" if failures else "asset-pass")
-            icon      = "❌" if has_error else ("⚠️" if failures else "✅")
+            icon = "❌" if has_error else ("⚠️" if failures else "✅")
             display = (
-                results
-                if self.show_passing
-                else [r for r in results if not r.passed or r.skipped]
+                results if self.show_passing else [r for r in results if not r.passed or r.skipped]
             )
-            rows      = "".join(self._renderRow(r) for r in display)
+            rows = "".join(self._renderRow(r) for r in display)
 
             if not rows:
                 rows = '<tr><td colspan="5" class="no-issues">All checks passed.</td></tr>'
@@ -472,18 +483,18 @@ class HTMLFormatter:
 
         """
         if r.skipped:
-            badge   = '<span class="badge sev-skip">SKIP</span>'
+            badge = '<span class="badge sev-skip">SKIP</span>'
             row_cls = "row-skip"
         elif r.passed:
-            badge   = '<span class="badge sev-pass">PASS</span>'
+            badge = '<span class="badge sev-pass">PASS</span>'
             row_cls = "row-pass"
         else:
             sev_name, sev_cls = self._SEV_BADGE.get(r.severity.value, ("?", "sev-info"))
-            badge   = f'<span class="badge {sev_cls}">{sev_name}</span>'
+            badge = f'<span class="badge {sev_cls}">{sev_name}</span>'
             row_cls = f"row-{sev_cls.split('-')[1]}"
 
         status_icon = "↷" if r.skipped else ("✓" if r.passed else "✗")
-        fix_cell    = self._esc(r.fix_hint) if r.fix_hint else ""
+        fix_cell = self._esc(r.fix_hint) if r.fix_hint else ""
 
         if fix_cell:
             fix_cell = f'<span class="fix-hint">💡 {fix_cell}</span>'
