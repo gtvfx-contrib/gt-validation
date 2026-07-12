@@ -37,5 +37,3 @@ for package_name in PACKAGES:
     _writeModulePage(doc_path, package_name)
     nav[segments] = f"{package_name}.md"
 
-with mkdocs_gen_files.open("reference/SUMMARY.md", "w") as nav_file:
-    nav_file.writelines(nav.build_literate_nav())
