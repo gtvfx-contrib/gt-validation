@@ -1,6 +1,6 @@
-* [Home](index.md)
+* [Home](https://gtvfx-contrib.github.io/gt-validation/)
 * API Reference
-    * [gt.validator](reference/gt.validator.md)
-    * [gt.validator.rules](reference/gt.validator.rules.md)
-    * [gt.validator.context](reference/gt.validator.context.md)
-    * [gt.validator.reporting](reference/gt.validator.reporting.md)
+    * [gt.validator](https://gtvfx-contrib.github.io/gt-validation/reference/gt.validator/)
+    * [gt.validator.rules](https://gtvfx-contrib.github.io/gt-validation/reference/gt.validator.rules/)
+    * [gt.validator.context](https://gtvfx-contrib.github.io/gt-validation/reference/gt.validator.context/)
+    * [gt.validator.reporting](https://gtvfx-contrib.github.io/gt-validation/reference/gt.validator.reporting/)
