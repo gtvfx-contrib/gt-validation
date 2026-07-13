@@ -1,11 +1,11 @@
 # GT Validation
 
-Asset validation framework for Unreal Engine 5.5.x — A comprehensive tool for validating game assets against project standards and best practices.
+Extensive, application-agnostic asset validation framework — A comprehensive tool for validating game assets against project standards and best practices. The validation rules are context-aware and can be isolated to a specific host application, but the framework itself is agnostic.
 
 ## Key Features
 
 - **Rule-Based Validation** — Extensible rule system with context-aware checks
-- **Unreal Engine Integration** — Native support for UE5 asset types and structures
+- **Application Agnostic** — Designed to work across multiple host applications with context-aware isolation
 - **Configurable** — JSON-based configuration for custom validation rules
 - **Reporting** — Structured reports with multiple output formats
 
@@ -23,11 +23,11 @@ print(report.summaryLine())
 
 | Topic | Description |
 |---|---|
-| [Home](docs/index.md) | Overview and getting started guide |
-| [API Reference](docs/reference/gt/validator.md) | Complete Python API documentation |
-| [Rules Module](docs/reference/gt/validator/rules.md) | Validation rule definitions and implementations |
-| [Context Module](docs/reference/gt/validator/context.md) | Context-aware validation utilities |
-| [Reporting Module](docs/reference/gt/validator/reporting.md) | Report generation and output formatting |
+| [Home](https://github.com/gtvfx-contrib/gt-validation.github.io/) | Overview and getting started guide |
+| [API Reference](https://github.com/gtvfx-contrib/gt-validation.github.io/reference/gt/validator.md) | Complete Python API documentation |
+| [Rules Module](https://github.com/gtvfx-contrib/gt-validation.github.io/reference/gt/validator/rules.md) | Validation rule definitions and implementations |
+| [Context Module](https://github.com/gtvfx-contrib/gt-validation.github.io/reference/gt/validator/context.md) | Context-aware validation utilities |
+| [Reporting Module](https://github.com/gtvfx-contrib/gt-validation.github.io/reference/gt/validator/reporting.md) | Report generation and output formatting |
 
 ## Installation
 
