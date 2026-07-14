@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "gt-validation"
 dynamic = ["version"]
 requires-python = ">=3.10"
-description = "Extensive, application-agnostic asset validation framework — A comprehensive tool for validating game assets against project standards and best practices. The validation rules are context-aware and can be isolated to a specific host application, but the framework itself is agnostic.",
+description = "Extensive, application-agnostic asset validation framework — A comprehensive tool for validating game assets against project standards and best practices. The validation rules are context-aware and can be isolated to a specific host application, but the framework itself is agnostic."
 readme = "README.md"
 license = { file = "LICENSE" }
 
