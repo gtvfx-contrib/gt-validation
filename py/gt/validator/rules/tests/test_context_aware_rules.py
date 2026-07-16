@@ -8,14 +8,21 @@ This module contains tests for the context-aware rule system, including:
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent  # goes to V:\repo\gtvfx-contrib\gt\validation
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import unittest
 from unittest.mock import Mock
 
 from gt.runtime import HostType
 
-from ...config import Config
-from ..base import AbstractRule, Severity
-from ..registry import registry
+from gt.validator.config import Config  # type: ignore
+from gt.validator.rules.base import AbstractRule, Severity
+from gt.validator.rules.registry import registry
 
 
 class TestContextAwareRules(unittest.TestCase):

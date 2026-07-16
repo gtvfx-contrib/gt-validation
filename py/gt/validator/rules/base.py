@@ -2,14 +2,26 @@
 
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..config import Config
+
+
+logger = logging.getLogger(__name__)
+
+
+# Import HostType from the globals runtime detection package.
+try:
+    from gt.runtime import HostType as _HostType
+except ImportError:
+    # Fallback if gt.runtime is not available (e.g., in tests).
+    _HostType = None  # type: ignore
 
 
 class Severity(Enum):
@@ -96,19 +108,19 @@ class AbstractRule(ABC):
     severity: Severity = Severity.ERROR
     context = None  # Type: HostType
 
-    def __init__(self, config: Config, context) -> None:
+    def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
         """Initialise the rule with config and context.
 
         Args:
             config: Layered Config object.
-            context: Validation context instance.
+            context: Validation context instance (e.g., HostType.UNREAL).
 
         """
         self.config = config
-        self.context = context
+        self.context = context or _HostType.STANDALONE if _HostType else None
 
     def isEnabled(self) -> bool:
-        """Return whether this rule is enabled in the current config.
+        """Return whether this rule is enabled in the current config and host.
 
         Reads ``config[f"require_{self.name}"]``, defaulting to ``True``.
         Any rule can be switched off via config without touching rule code.
@@ -117,7 +129,21 @@ class AbstractRule(ABC):
             ``True`` if this rule should run; ``False`` to skip it.
 
         """
-        return self.config.get(f"require_{self.name}", True)
+        if not self.config.get(f"require_{self.name}", True):
+            return False
+
+        # If rule has a declared context, check against current runtime.
+        if getattr(self, 'context', None) is not None and _HostType is not None:
+            from gt.runtime import RuntimeDetector as _RuntimeDetector
+            current_host = _RuntimeDetector.getCurrentHost()
+            if self.context != current_host and self.context != _HostType.STANDALONE:
+                logger.debug(
+                    "[Rule] %s skipped — requires %s but running in %s.",
+                    self.name, self.context.value, current_host.value,
+                )
+                return False
+
+        return True
 
     @abstractmethod
     def validate(self, asset_path: str) -> ValidationResult:
@@ -190,3 +216,63 @@ class AbstractRule(ABC):
             skipped=True,
             timestamp=datetime.now().isoformat(),
         )
+
+    @classmethod
+    def register_rule(cls, name: str, category: str, severity: Severity):
+        """Class decorator — registers a rule class with the global registry.
+
+        Usage::
+
+            @AbstractRule.register_rule("my_rule", "my_category", Severity.ERROR)
+            class MyRule(AbstractRule):
+                ...
+
+        Args:
+            name: Unique snake_case identifier for the rule.
+            category: Rule category string used for grouping in reports.
+            severity: Default :class:`Severity` for non-passing results.
+
+        Returns:
+            The decorated class, ready to be registered with ``registry.register``
+            after module import.
+
+        """
+        def decorator(rule_cls) -> type:
+            rule_cls.name = name
+            rule_cls.category = category
+            rule_cls.severity = severity
+            registry.register(rule_cls)
+            return rule_cls
+
+        return decorator
+
+    @classmethod
+    def register_rule(
+        cls, name: str, category: str, severity: Severity
+    ):
+        """Class decorator — registers a rule class with the global registry.
+
+        Usage::
+
+            @AbstractRule.register_rule("my_rule", "my_category", Severity.ERROR)
+            class MyRule(AbstractRule):
+                ...
+
+        Args:
+            name: Unique snake_case identifier for the rule.
+            category: Rule category string used for grouping in reports.
+            severity: Default :class:`Severity` for non-passing results.
+
+        Returns:
+            The decorated class, ready to be registered with ``registry.register``
+            after module import.
+
+        """
+        def decorator(rule_cls) -> type:
+            rule_cls.name = name
+            rule_cls.category = category
+            rule_cls.severity = severity
+            registry.register(rule_cls)
+            return rule_cls
+
+        return decorator

@@ -1,19 +1,27 @@
 """Tests for ValidationRunner context handling.
 
 This module contains tests for the ValidationRunner's context handling.
+Uses production rule classes via absolute imports.
 """
 
 from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent  # goes to V:\repo\gtvfx-contrib\gt\validation
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import unittest
 from unittest.mock import Mock, patch
 
 from gt.runtime import HostType
 
-from ...config import Config
-from ..base import AbstractRule, Severity
-from ..registry import registry
-from ..runner import ValidationRunner
+from gt.validator.config import Config  # type: ignore
+from gt.validator.rules.base import AbstractRule, Severity
+from gt.validator.rules.registry import registry
+from gt.validator.rules.runner import ValidationRunner
 
 
 class TestValidationRunnerContext(unittest.TestCase):
@@ -22,8 +30,7 @@ class TestValidationRunnerContext(unittest.TestCase):
     def setUp(self) -> None:
         """Clear the registry before each test."""
         registry.clear()
-        self.config = Mock()
-        self.config.get = Mock(return_value=True)
+        self.config = Config()  # Use defaults instead of Mock for production rules
 
     def test_runner_gets_current_context(self) -> None:
         """Test that ValidationRunner gets current context from gt.runtime."""
