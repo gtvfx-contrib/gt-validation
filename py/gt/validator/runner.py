@@ -16,9 +16,11 @@ import os
 import time
 from collections.abc import Callable, Iterator
 
-from gt.runtime import HostType
+from gt.runtime import HostType, getCurrentHost
 
+from .allowlist import AllowlistManager
 from .config import Config
+from .context.base import ValidationContext
 from .registry import registry
 from .reporting.models import ValidationReport
 from .rules.base import AbstractRule, Severity, ValidationResult
@@ -41,8 +43,8 @@ class ValidationRunner:
         category: str | None = None,
         severity: Severity | None = None,
         rules: list[type[AbstractRule]] | None = None,
-        context=None,
-        allowlist=None,
+        context: ValidationContext | None = None,
+        allowlist: AllowlistManager | None = None,
         max_workers: int | None = None,
     ) -> None:
         """Initialise the runner with configuration and optional filters.
@@ -52,7 +54,9 @@ class ValidationRunner:
             category: Optional string filter — only rules in this category run.
             severity: Optional Severity filter.
             rules: Explicit list of rule classes — bypasses registry lookup.
-            context: Optional ValidationContext instance (reserved for future use).
+            context: Optional ValidationContext instance to use for asset metadata.
+                If ``None``, the runner auto-detects the appropriate context based
+                on the current host type (Unreal or standalone).
             allowlist: Optional AllowlistManager instance.
             max_workers: Number of worker threads.  ``1`` = serial (safe in
                 Unreal).  Default: ``VALIDATOR_MAX_WORKERS`` env var or CPU count.
@@ -61,7 +65,7 @@ class ValidationRunner:
         self.config = config
         self.category = category
         self.severity = severity
-        self.rules = rules
+        self.rules = rules or []
         self.context = context
         self.allowlist = allowlist
 
@@ -75,7 +79,7 @@ class ValidationRunner:
 
         # Discover and instantiate rules
         try:
-            if rules is not None:
+            if rules:
                 self.rules = [R(config) for R in rules]
             else:
                 registry.discover()
@@ -88,9 +92,21 @@ class ValidationRunner:
                         severity,
                         list(registry.listRules().keys()),
                     )
-                # Get current context for context-aware rules
-                current_context = HostType.UNREAL if context is None else context
-                self.rules = [R(config, context=current_context) for R in rule_classes]
+                # Auto-detect the appropriate context based on current host type.
+                if self.context is None and HostType is not None:
+                    from .context.unreal import UnrealContext
+
+                    current_host = getCurrentHost()
+                    if current_host == HostType.UNREAL:
+                        self.context = UnrealContext(directory="/Game/")
+                    else:
+                        from .context.filesystem import FilesystemContext
+
+                        self.context = FilesystemContext()
+
+                # Instantiate rules with the context object.
+                ctx = self.context
+                self.rules = [R(config, context=ctx) for R in rule_classes]
         except Exception as e:
             logger.error(f"[ValidationRunner] Failed to initialize rules: {e}")
             raise

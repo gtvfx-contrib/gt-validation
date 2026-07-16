@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 
+from ..context.base import AssetMetadata, ValidationContext
 from ..registry import registry
 from .base import AbstractRule, Severity, ValidationResult
 
@@ -42,7 +43,7 @@ class FileSizeRule(AbstractRule):
         """
         max_mb: float = self.config.get("max_file_size_mb", 50)
 
-        # Filesystem size check requires a real disk path.
+        # Use context to collect metadata instead of direct filesystem access.
         if not os.path.exists(asset_path):
             return self._makeSkipped(
                 asset_path,
@@ -50,8 +51,8 @@ class FileSizeRule(AbstractRule):
                 "File size is managed by Unreal when running inside the Editor.",
             )
 
-        size_bytes = os.path.getsize(asset_path)
-        size_mb = size_bytes / (1024 * 1024)
+        meta = self.context.collect(asset_path)
+        size_mb = meta.sizeMb if meta else 0.0
 
         if size_mb > max_mb:
             return self._makeResult(
@@ -96,17 +97,16 @@ class ValidExtensionRule(AbstractRule):
             approved list.  Skipped for non-filesystem paths.
 
         """
-        _, ext = os.path.splitext(asset_path)
-        ext = ext.lower()
-
-        # Extension check on Unreal content paths is not meaningful —
-        # all .uasset files have the same extension on disk.
+        # Use context to collect metadata instead of direct filesystem access.
         if not os.path.exists(asset_path):
             return self._makeSkipped(
                 asset_path,
                 "ValidExtensionRule skipped: not a filesystem path. "
                 "Asset type is available via AssetData.asset_class in Unreal.",
             )
+
+        meta = self.context.collect(asset_path)
+        ext = meta.extension if meta else ""
 
         valid_exts: list = self.config.get(
             "valid_extensions", [".uasset", ".fbx", ".png", ".tga", ".exr"]

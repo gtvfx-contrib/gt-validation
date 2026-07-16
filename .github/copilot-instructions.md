@@ -1,8 +1,18 @@
-CRITICAL TEST
+CRITICAL:
 
-Every response must begin with:
+Every response must begin with: [INSTRUCTIONS LOADED]
 
-[INSTRUCTIONS LOADED]
+Target Environment:
+You are operating in a Windows environment. Assume Windows 11.
+
+Command Language: 
+Always generate PowerShell or standard Windows Command Prompt (cmd) scripts. NEVER generate Linux Bash scripts.
+
+Tool Replacement: 
+Use Windows-native CLI alternatives. For example, use 'Select-String' instead of 'grep', 'Get-ChildItem' instead of 'ls', and 'winget' or 'Invoke-WebRequest' instead of 'curl/wget'.
+
+Syntax Enforcement:
+Use Windows backslashes (\\) for paths and PowerShell execution policies. Do not use POSIX forward slashes (/) for local file paths.
 
 # GitHub Copilot Instructions for gtvfx-contrib repos.
 

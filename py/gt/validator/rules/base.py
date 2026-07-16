@@ -106,7 +106,7 @@ class AbstractRule(ABC):
     name: str = ""
     category: str = ""
     severity: Severity = Severity.ERROR
-    context = None  # Type: HostType
+    context: Optional[_HostType] = None  # Type: HostType
 
     def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
         """Initialise the rule with config and context.
@@ -117,7 +117,11 @@ class AbstractRule(ABC):
 
         """
         self.config = config
-        self.context = context or _HostType.STANDALONE if _HostType else None
+        if _HostType is not None and context is None:
+            # Default to STANDALONE when no explicit context provided.
+            self.context = _HostType.STANDALONE
+        else:
+            self.context = context
 
     def isEnabled(self) -> bool:
         """Return whether this rule is enabled in the current config and host.
@@ -133,10 +137,10 @@ class AbstractRule(ABC):
             return False
 
         # If rule has a declared context, check against current runtime.
-        if getattr(self, 'context', None) is not None and _HostType is not None:
+        if self.context is not None and _HostType is not None:
             from gt.runtime import RuntimeDetector as _RuntimeDetector
             current_host = _RuntimeDetector.getCurrentHost()
-            if self.context != current_host and self.context != _HostType.STANDALONE:
+            if self.context != current_host:
                 logger.debug(
                     "[Rule] %s skipped — requires %s but running in %s.",
                     self.name, self.context.value, current_host.value,

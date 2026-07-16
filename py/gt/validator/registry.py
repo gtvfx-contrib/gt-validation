@@ -189,8 +189,34 @@ class RuleRegistry:
         if severity is not None:
             rules = [r for r in rules if r.severity == severity]
         if context is not None:
-            rules = [r for r in rules if getattr(r, 'context', None) == context]
+            # Filter by the rule's declared context. A rule with no explicit
+            # context (None) matches any filter, since it's a catch-all rule.
+            rules = [
+                r for r in rules
+                if getattr(r, 'context', None) == context or r.context is None
+            ]
         return rules
+
+    def getRulesWithContext(self) -> dict[Optional[_HostType], list[type]]:
+        """Return registered rule classes grouped by their declared context.
+
+        Rules with no explicit context (None) are placed under the STANDALONE key,
+        since they run everywhere.  This is useful for the runner to efficiently
+        group rules before instantiation.
+
+        Returns:
+            A dict mapping HostType values to lists of rule classes.
+
+        """
+        from gt.runtime import RuntimeDetector as _RuntimeDetector
+        if _HostType is None:
+            return {}
+
+        groups: dict[Optional[_HostType], list[type]] = {None: []}
+        for r in self._rules.values():
+            ctx = getattr(r, 'context', None) or _HostType.STANDALONE
+            groups.setdefault(ctx, []).append(r)
+        return groups
 
     def listRules(self) -> dict[str, type]:
         """Return a copy of the rules dict {name: class}."""
