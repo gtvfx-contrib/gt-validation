@@ -176,7 +176,9 @@ class RuleRegistry:
         Args:
             category: If provided, only rules with this category are returned.
             severity: If provided, only rules with this severity are returned.
-            context: If provided, only rules with this context are returned.
+            context: If provided, only rules with this context or multi-context
+                rules that include this context are returned. Rules with no explicit
+                context (None) match any filter.
 
         Returns:
             A list of rule classes matching the given filters.
@@ -191,31 +193,44 @@ class RuleRegistry:
         if context is not None:
             # Filter by the rule's declared context. A rule with no explicit
             # context (None) matches any filter, since it's a catch-all rule.
-            rules = [
-                r for r in rules
-                if getattr(r, 'context', None) == context or r.context is None
-            ]
+            def context_matches(rule):
+                rule_ctx = getattr(rule, 'context', None) or None
+                if rule_ctx is None:
+                    return True  # No context declared — match everything
+                if isinstance(rule_ctx, (tuple, list)):
+                    # Multi-context rule — check if any of the contexts matches
+                    return context in rule_ctx
+                else:
+                    # Single context rule
+                    return rule_ctx == context
+
+            rules = [r for r in rules if context_matches(r)]
         return rules
 
-    def getRulesWithContext(self) -> dict[Optional[_HostType], list[type]]:
+    def getRulesWithContext(self) -> dict[object, list[type]]:
         """Return registered rule classes grouped by their declared context.
 
         Rules with no explicit context (None) are placed under the STANDALONE key,
-        since they run everywhere.  This is useful for the runner to efficiently
-        group rules before instantiation.
+        since they run everywhere.  Rules with multi-context support (tuple/list)
+        are placed under each of their supported contexts.  This is useful for the
+        runner to efficiently group rules before instantiation.
 
         Returns:
             A dict mapping HostType values to lists of rule classes.
 
         """
-        from gt.runtime import RuntimeDetector as _RuntimeDetector
-        if _HostType is None:
-            return {}
+        from gt.runtime import HostType, getCurrentHost
 
-        groups: dict[Optional[_HostType], list[type]] = {None: []}
+        groups: dict[object, list[type]] = {None: []}
         for r in self._rules.values():
-            ctx = getattr(r, 'context', None) or _HostType.STANDALONE
-            groups.setdefault(ctx, []).append(r)
+            ctx = getattr(r, 'context', None) or HostType.STANDALONE
+            
+            # Handle multi-context rules — add to each supported context
+            if isinstance(ctx, (tuple, list)):
+                for c in ctx:
+                    groups.setdefault(c, []).append(r)
+            else:
+                groups.setdefault(ctx, []).append(r)
         return groups
 
     def listRules(self) -> dict[str, type]:

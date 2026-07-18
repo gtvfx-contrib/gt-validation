@@ -21,6 +21,7 @@ from gt.runtime import HostType, getCurrentHost
 from .allowlist import AllowlistManager
 from .config import Config
 from .context.base import ValidationContext
+from .context_factory import ContextFactory
 from .registry import registry
 from .reporting.models import ValidationReport
 from .rules.base import AbstractRule, Severity, ValidationResult
@@ -56,7 +57,7 @@ class ValidationRunner:
             rules: Explicit list of rule classes — bypasses registry lookup.
             context: Optional ValidationContext instance to use for asset metadata.
                 If ``None``, the runner auto-detects the appropriate context based
-                on the current host type (Unreal or standalone).
+                on the current host type (Unreal or standalone) via ContextFactory.
             allowlist: Optional AllowlistManager instance.
             max_workers: Number of worker threads.  ``1`` = serial (safe in
                 Unreal).  Default: ``VALIDATOR_MAX_WORKERS`` env var or CPU count.
@@ -92,17 +93,30 @@ class ValidationRunner:
                         severity,
                         list(registry.listRules().keys()),
                     )
-                # Auto-detect the appropriate context based on current host type.
-                if self.context is None and HostType is not None:
-                    from .context.unreal import UnrealContext
+                # Auto-detect the appropriate context using ContextFactory.
+                if self.context is None:
+                    factory = ContextFactory.get_instance()
+                    self.context = factory.get_context()
 
-                    current_host = getCurrentHost()
-                    if current_host == HostType.UNREAL:
-                        self.context = UnrealContext(directory="/Game/")
-                    else:
-                        from .context.filesystem import FilesystemContext
+                # Filter rules by their declared context to match the current host.
+                from gt.runtime import RuntimeDetector as _RuntimeDetector
 
-                        self.context = FilesystemContext()
+                try:
+                    current_host = _RuntimeDetector.getCurrentHost()
+                except Exception:  # noqa: BLE001 - runtime may not be available
+                    current_host = None
+
+                if current_host is not None:
+                    context_groups = registry.getRulesWithContext()
+                    matching_rules = context_groups.get(current_host, []) + context_groups.get(None, [])
+                    # Deduplicate while preserving order
+                    seen_names: set[str] = set()
+                    filtered: list[type[AbstractRule]] = []
+                    for r in matching_rules:
+                        if r.name not in seen_names:
+                            seen_names.add(r.name)
+                            filtered.append(r)
+                    rule_classes = filtered
 
                 # Instantiate rules with the context object.
                 ctx = self.context
@@ -131,6 +145,13 @@ class ValidationRunner:
             return [self._makeSkippedResult(asset_path, "Asset is allowlisted")]
 
         for rule in self.rules:
+            if not rule.isEnabled():
+                logger.debug(
+                    "[ValidationRunner] Skipping disabled rule '%s' for asset '%s'.",
+                    getattr(rule, "name", type(rule).__name__),
+                    asset_path,
+                )
+                continue
             t0 = time.perf_counter()
             try:
                 result = rule.validate(asset_path)

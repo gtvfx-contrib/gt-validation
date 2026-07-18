@@ -6,8 +6,7 @@ Rules:
 
 from __future__ import annotations
 
-from ..env import loadUnrealAsset
-from ..errors import UnrealAPIError
+from ..context.base import AssetMetadata, ValidationContext
 from ..registry import registry
 from .base import AbstractRule, Severity, ValidationResult
 
@@ -49,19 +48,15 @@ class NiagaraFixedBoundsRule(AbstractRule):
                 asset_class="NiagaraSystem",
             )
 
+        # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+        except (AttributeError, TypeError):
+            meta = None
 
-        if not isinstance(asset, unreal.NiagaraSystem):
-            return self._makeSkipped(
-                asset_path, f"Not a NiagaraSystem (got {type(asset).__name__})."
-            )
-
-        try:
-            fixed_bounds = asset.get_editor_property("fixed_bounds")
+        if meta is not None:
+            fixed_bounds = meta.properties.get("fixed_bounds", False)
+            
             if not fixed_bounds:
                 return self._makeResult(
                     asset_path,
@@ -79,5 +74,9 @@ class NiagaraFixedBoundsRule(AbstractRule):
                 message="Niagara system has fixed bounds configured.",
                 asset_class="NiagaraSystem",
             )
-        except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-            return self._makeSkipped(asset_path, f"Validation error: {exc}")
+
+        # Fallback: if context cannot provide metadata, skip validation.
+        return self._makeSkipped(
+            asset_path,
+            "Niagara fixed bounds validation requires Unreal Engine host or filesystem access."
+        )

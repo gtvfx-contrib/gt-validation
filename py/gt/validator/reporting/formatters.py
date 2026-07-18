@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..rules.base import Severity, ValidationResult
 from .models import ValidationReport
@@ -208,27 +208,34 @@ class ConsoleFormatter:
 
 
 class JSONFormatter:
-    """Machine-readable JSON report.
+    """Machine-readable JSON report formatter.
 
     Structure::
         {
-          "generated_at": "...",
-          "tool_version": "...",
-          "duration_ms": 0.0,
-          "asset_count": 0,
-          "rule_count": 0,
+          "metadata": {
+            "timestamp": "...",
+            "tool_version": "...",
+            "duration_ms": 0.0,
+            "host_type": "standalone" | "unreal" | ...
+          },
           "summary": {
             "status": "PASS",
-            "total": 0, "passed": 0, "failed": 0,
-            "errors": 0, "warnings": 0, "infos": 0, "skipped": 0
+            "total_assets": 0,
+            "total_results": 0,
+            "passed": 0, "failed": 0, "skipped": 0,
+            "errors": 0, "warnings": 0,
+            "categories": { ... }
           },
-
-          "results": [ { ... } ]
+          "results": { "category_name": [ { ... } ] }
         }
 
     Args:
         show_passing: Include passing results in the ``results`` array
             (default: ``False``).
+
+    Note:
+        This formatter is pure — it returns a string. File I/O is the caller's
+        responsibility (e.g. ``Path("report.json").write_text(formatter.format(report))``).
 
     """
 
@@ -243,41 +250,153 @@ class JSONFormatter:
         self.show_passing = show_passing
 
     def format(self, report: ValidationReport) -> str:
-        """Format *report* as a formatted JSON string.
+        """Format *report* as a JSON string.
 
         Args:
             report: The ValidationReport to format.
 
         Returns:
-            A UTF-8 JSON string, indented by 2 spaces.
+            A UTF-8 JSON string with 2-space indentation.
 
         """
-        results_data = [
-            self._resultToDict(r)
-            for r in report.results
-            if self.show_passing or not r.passed or r.skipped
-        ]
+        data = self._build_data(report)
+        return json.dumps(data, indent=2, ensure_ascii=False, default=str)
 
-        data = {
-            "generated_at": datetime.now().isoformat(),
-            "tool_version": report.tool_version,
-            "duration_ms": report.duration_ms,
-            "asset_count": report.asset_count,
-            "rule_count": report.rule_count,
-            "summary": {
-                "status": "FAIL" if report.hasErrors() else "PASS",
-                "total": report.total,
-                "passed": report.passed,
-                "failed": report.failed,
-                "errors": report.errors,
-                "warnings": report.warnings,
-                "infos": report.infos,
-                "skipped": report.skipped,
-            },
-            "results": results_data,
+    def _build_data(self, report: ValidationReport) -> dict:
+        """Build the JSON-serializable data structure from *report*.
+
+        Args:
+            report: The ValidationReport to serialize.
+
+        Returns:
+            A dictionary ready for ``json.dumps``.
+
+        """
+        # Metadata section
+        metadata: dict = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        if hasattr(report, "tool_version") and report.tool_version:
+            metadata["tool_version"] = report.tool_version
+        if hasattr(report, "duration_ms"):
+            metadata["duration_ms"] = round(report.duration_ms, 1)
+
+        # Host type detection (best-effort)
+        try:
+            from gt.runtime import RuntimeDetector as _RuntimeDetector
+            host_type = _RuntimeDetector.getCurrentHost()
+            if host_type is not None:
+                metadata["host_type"] = host_type.value
+        except ImportError:
+            pass  # Standalone mode has no runtime info
+
+        # Summary statistics
+        summary = self._build_summary(report)
+
+        # Per-asset results grouped by category
+        per_asset: dict[str, list[dict]] = {}
+        for result in report.results:
+            if not self.show_passing and result.passed and not result.skipped:
+                continue
+            category = getattr(result, "category", "") or "uncategorized"
+            per_asset.setdefault(category, []).append(self._result_to_dict(result))
+
+        return {
+            "metadata": metadata,
+            "summary": summary,
+            "results": per_asset,
         }
 
-        return json.dumps(data, indent=2, default=str)
+    def _build_summary(self, report: ValidationReport) -> dict:
+        """Build summary statistics from a validation report.
+
+        Args:
+            report: The :class:`ValidationReport` containing results.
+
+        Returns:
+            A dictionary with summary counts by category and severity.
+
+        """
+        total = len(report.results)
+        passed = report.passed
+        failed = report.failed
+        skipped = report.skipped
+        errors = report.errors
+        warnings = report.warnings
+
+        # Summary by category
+        categories: dict[str, dict] = {}
+        for result in report.results:
+            cat = getattr(result, "category", "") or "uncategorized"
+            if cat not in categories:
+                categories[cat] = {
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                    "errors": 0,
+                    "warnings": 0,
+                }
+            categories[cat]["total"] += 1
+            if result.passed and not result.skipped:
+                categories[cat]["passed"] += 1
+            elif not result.passed and not result.skipped:
+                categories[cat]["failed"] += 1
+            else:
+                categories[cat]["skipped"] += 1
+
+        # Count severities per category for failed results
+        for result in report.failures():
+            cat = getattr(result, "category", "") or "uncategorized"
+            if cat not in categories:
+                categories.setdefault(cat, {"total": 0})
+                categories[cat]["failed"] = 0
+
+        # Build summary dict with counts by category and severity
+        summary: dict = {
+            "status": "FAIL" if report.hasErrors() else "PASS",
+            "total_assets": report.asset_count,
+            "total_results": total,
+            "passed": passed,
+            "failed": failed,
+            "skipped": skipped,
+            "errors": errors,
+            "warnings": warnings,
+            "categories": categories,
+        }
+
+        # Assets with failures grouped by asset path
+        assets_with_failures = report.assetsWithFailures()
+        if assets_with_failures:
+            summary["assets_with_failures"] = {
+                path: len(results) for path, results in assets_with_failures.items()
+            }
+
+        return summary
+
+    @staticmethod
+    def _result_to_dict(r) -> dict:
+        """Convert a single :class:`ValidationResult` to a JSON-compatible dict.
+
+        Args:
+            r: A :class:`~validator.rules.base.ValidationResult` instance.
+
+        Returns:
+            A dictionary representation of the result suitable for JSON export.
+
+        """
+        return {
+            "asset_path": getattr(r, "asset_path", ""),
+            "rule_name": getattr(r, "rule_name", ""),
+            "category": getattr(r, "category", ""),
+            "severity": getattr(r, "severity", None).value if r.severity else "",
+            "passed": getattr(r, "passed", False),
+            "skipped": getattr(r, "skipped", False),
+            "message": getattr(r, "message", ""),
+            "fix_hint": getattr(r, "fix_hint", ""),
+            "timestamp": getattr(r, "timestamp", ""),
+            "duration_ms": round(getattr(r, "duration_ms", 0.0), 1),
+        }
 
     @staticmethod
     def _resultToDict(r: ValidationResult) -> dict:

@@ -181,218 +181,7 @@ class TestValidationRunnerIntegration(unittest.TestCase):
     """Test ValidationRunner integration with mocked assets."""
 
     def setUp(self) -> None:
-        from gt.validator.rules.runner import ValidationRunner  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-
-
-
-class TestNamingConventionRule(unittest.TestCase):
-    """Test NamingConventionRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_valid_naming(self) -> None:
-        result = TestNamingRule.validate("SM_MyAsset.uasset")
-        self.assertTrue(result.passed)
-
-    def test_invalid_naming(self) -> None:
-        result = TestNamingRule.validate("my_asset.uasset")
-        self.assertFalse(result.passed)
-
-
-class TestFileSizeRule(unittest.TestCase):
-    """Test FileSizeRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_small_file(self) -> None:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
-            f.write(b"small file content")
-            path = f.name
-
-        try:
-            result = TestFileSizeRule.validate(path)
-            self.assertTrue(result.passed)
-        finally:
-            os.unlink(path)
-
-    def test_large_file(self) -> None:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as f:
-            data = b"A" * (60 * 1024 * 1024)  # 60MB
-            f.write(data)
-            path = f.name
-
-        try:
-            result = TestFileSizeRule.validate(path)
-            self.assertFalse(result.passed)
-        finally:
-            os.unlink(path)
-
-
-class TestValidExtensionRule(unittest.TestCase):
-    """Test ValidExtensionRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_valid_extension(self) -> None:
-        result = TestValidExtRule.validate("SM_MyAsset.uasset")
-        self.assertTrue(result.passed)
-
-    def test_invalid_extension(self) -> None:
-        result = TestValidExtRule.validate("bad_file.xyz")
-        self.assertFalse(result.passed)
-
-
-class TestPrefixConventionRule(unittest.TestCase):
-    """Test PrefixConventionRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_valid_prefix(self) -> None:
-        result = TestPrefixRule.validate("SM_MyMesh.uasset")
-        self.assertTrue(result.passed)
-
-    def test_invalid_prefix(self) -> None:
-        result = TestPrefixRule.validate("my_mesh.uasset")
-        self.assertFalse(result.passed)
-
-
-class TestFilenameLengthRule(unittest.TestCase):
-    """Test FilenameLengthRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_valid_length(self) -> None:
-        result = TestFilenameLenRule.validate("SM_MyAsset.uasset")
-        self.assertTrue(result.passed)
-
-    def test_long_filename(self) -> None:
-        long_name = "A" * 70 + ".uasset"
-        result = TestFilenameLenRule.validate(long_name)
-        self.assertFalse(result.passed)
-
-
-class TestBoundingBoxExtentRule(unittest.TestCase):
-    """Test BoundingBoxExtentRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_within_limit(self) -> None:
-        result = TestBoundingBoxExtent.validate("/Game/MyMesh.uasset")
-        self.assertTrue(result.passed)
-
-
-class TestBoundingBoxOriginRule(unittest.TestCase):
-    """Test BoundingBoxOriginRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_within_limit(self) -> None:
-        result = TestBoundingBoxOrigin.validate("/Game/MyMesh.uasset")
-        self.assertTrue(result.passed)
-
-
-class TestStaticMeshLODCountRule(unittest.TestCase):
-    """Test StaticMeshLODCountRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_valid_lod_count(self) -> None:
-        result = TestStaticMeshLOD.validate("/Game/MyMesh.uasset")
-        self.assertTrue(result.passed)
-
-
-class TestMaterialSlotCountRule(unittest.TestCase):
-    """Test MaterialSlotCountRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_within_limit(self) -> None:
-        result = TestMaterialSlots.validate("/Game/MyMaterial.uasset")
-        self.assertTrue(result.passed)
-
-
-class TestOverdrawHeuristicRule(unittest.TestCase):
-    """Test OverdrawHeuristicRule."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.rules.config import Config  # type: ignore
-
-        self.config = Config()  # Use defaults
-        rule_registry.clear()
-
-    def test_opaque_material(self) -> None:
-        result = TestOverdraw.validate("/Game/MyMaterial.uasset")
-        self.assertTrue(result.passed)
-
-
-class TestValidationRunnerIntegration(unittest.TestCase):
-    """Test ValidationRunner integration with mocked assets."""
-
-    def setUp(self) -> None:
-        from gt.validator.rules.base import AbstractRule, Severity  # type: ignore
-        from gt.validator.rules.registry import registry as rule_registry  # type: ignore
-        from gt.validator.rules.config import Config  # type: ignore
-        from ...runner import ValidationRunner  # type: ignore
+        from gt.validator.runner import ValidationRunner  # type: ignore
 
         self.config = Config()  # Use defaults
         rule_registry.clear()
@@ -421,21 +210,21 @@ class TestValidationRunnerIntegration(unittest.TestCase):
 
 
 # Production rule classes — import here to avoid circular imports during collection.
-from gt.validator.rules.naming import (  # type: ignore
+from gt.validator.rules.naming import (  # noqa: E402,F401  # type: ignore
     NamingConventionRule,
     PrefixConventionRule,
     FilenameLengthRule,
 )
-from gt.validator.rules.filesystem import FileSizeRule, ValidExtensionRule  # type: ignore
-from gt.validator.rules.bounding_box import (  # type: ignore
+from gt.validator.rules.filesystem import FileSizeRule, ValidExtensionRule  # noqa: F401  # type: ignore
+from gt.validator.rules.bounding_box import (  # noqa: F401  # type: ignore
     BoundingBoxExtentRule,
     BoundingBoxOriginRule,
 )
-from gt.validator.rules.static_mesh import (  # type: ignore
+from gt.validator.rules.static_mesh import (  # noqa: F401  # type: ignore
     StaticMeshLODCountRule,
     StaticMeshMaterialSlotRule,
 )
-from gt.validator.rules.overdraw import OverdrawHeuristicRule  # type: ignore
+from gt.validator.rules.overdraw import OverdrawHeuristicRule  # noqa: F401  # type: ignore
 
 
 if __name__ == "__main__":

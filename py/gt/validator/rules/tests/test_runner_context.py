@@ -21,7 +21,7 @@ from gt.runtime import HostType
 from gt.validator.config import Config  # type: ignore
 from gt.validator.rules.base import AbstractRule, Severity
 from gt.validator.rules.registry import registry
-from gt.validator.rules.runner import ValidationRunner
+from gt.validator.runner import ValidationRunner
 
 
 class TestValidationRunnerContext(unittest.TestCase):

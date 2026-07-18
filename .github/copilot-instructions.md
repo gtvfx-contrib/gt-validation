@@ -1,18 +1,37 @@
-CRITICAL:
+# SYSTEM INSTRUCTIONS: DEVELOPMENT AND EXECUTION ENVIRONMENT
 
-Every response must begin with: [INSTRUCTIONS LOADED]
+###############################################################################
+# CRITICAL COMPLIANCE DIRECTIVE: WINDOWS ONLY ENVIRONMENT
+# UNDER NO CIRCUMSTANCES should any Linux, bash, sh, POSIX, or Unix commands, 
+# syntax, or utilities be used. The target machine does not have WSL, git-bash, 
+# or coreutils installed. Violation of this directive will crash the execution environment.
+###############################################################################
 
-Target Environment:
-You are operating in a Windows environment. Assume Windows 11.
+## 1. HOST ENVIRONMENT SPECIFICATIONS
+- **Operating System:** Windows 11 / Windows Server 2025
+- **Primary Shell:** PowerShell Core (`pwsh`) / Windows PowerShell
+- **Fallback Shell:** Windows Command Prompt (`cmd.exe`)
+- **Path Separation:** Strictly use backslashes (`\`) for all file system operations.
 
-Command Language: 
-Always generate PowerShell or standard Windows Command Prompt (cmd) scripts. NEVER generate Linux Bash scripts.
+## 2. STRICT COMMAND MAPPING (FORBIDDEN VS. MANDATORY)
+If you intend to use a Linux tool, you must automatically swap it for the Windows equivalent:
 
-Tool Replacement: 
-Use Windows-native CLI alternatives. For example, use 'Select-String' instead of 'grep', 'Get-ChildItem' instead of 'ls', and 'winget' or 'Invoke-WebRequest' instead of 'curl/wget'.
+| Forbidden Linux Tool | Mandatory Windows PowerShell Equivalent |
+| :--- | :--- |
+| `ls` or `ll` | `Get-ChildItem` |
+| `grep` or `rg` | `Select-String` |
+| `rm -rf <dir>` | `Remove-Item -Recurse -Force <dir>` |
+| `mkdir -p <dir>` | `New-Item -ItemType Directory -Force -Path <dir>` |
+| `touch <file>` | `New-Item -ItemType File -Force -Path <file>` |
+| `curl` or `wget` | `Invoke-WebRequest` or `Invoke-RestMethod` |
+| `cat` | `Get-Content` |
+| `printenv` or `env` | `Get-ChildItem Env:` |
+| `sed` / `awk` | Native PowerShell string manipulation or `ForEach-Object` |
 
-Syntax Enforcement:
-Use Windows backslashes (\\) for paths and PowerShell execution policies. Do not use POSIX forward slashes (/) for local file paths.
+## 3. COMPLIANCE ENFORCEMENT
+- Prioritize native Windows binary tools or .NET framework classes accessible via PowerShell over external scripts.
+- If generating code that performs file mutations, always include error handling using `try {} catch {}` blocks native to PowerShell.
+- Do not assume `/dev/null` exists; use `$null` or `Out-Null` instead.
 
 # GitHub Copilot Instructions for gtvfx-contrib repos.
 
@@ -31,7 +50,6 @@ Generally, we follow the **PEP 8 style guide** with the following specific modif
 | Function Names | `camelCase` | `myFunction` |
 | Property Names (`@property`) | `snake_case` | `my_property` |
 | Variable Names | `snake_case` | `my_variable` |
-| Global Variable Names | `UPPER_SNAKE` | `MY_GLOBAL` |
 | Class Variable Names | `snake_case` | `class_variable` |
 | Constant Class Variable Names | `UPPER_SNAKE` | `CLASS_CONSTANT` |
 
@@ -86,7 +104,7 @@ Follow these line length guidelines:
 
 - **Target**: Keep lines under **80 characters** when possible
 - **Maximum**: Hard limit of **100 characters** per line
-- **Line Breaking Rule**: Only break lines when they approach or exceed 80 characters. Do NOT break lines unnecessarily if they fit comfortably within the limits
+- **Line Breaking Rule**: Only break lines when they approach or exceed 100 characters. Do NOT break lines unnecessarily if they fit comfortably within the limits
 - **Long lines**: Break long lines using parentheses, backslashes, or logical break points
 
 ```python
@@ -96,60 +114,13 @@ result = someFunction(arg1, arg2, arg3)
 # Acceptable - under 100 characters (keep on single line)
 button.clicked.connect(self.someMethodName)
 
-# Only break when approaching/exceeding 80 characters
+# Only break when approaching/exceeding 100 characters
 result = someFunction(
     arg1, arg2, arg3, arg4, arg5, arg6, arg7
 )
-
-# Break long strings
-message = (
-    "This is a very long string that exceeds the line length "
-    "limit and should be broken into multiple lines"
-)
-```
-
-### Protected vs Private Variables
-
-```python
-# Preferred - Protected (single underscore)
-_member
-
-# Avoid - Private (double underscore, causes name mangling)
-__member
-```
-
-### Keyword Arguments
-
-Always use long keyword arguments when available:
-
-```python
-# Preferred
-cmds.ls(selection=True)
-
-# Avoid
-cmds.ls(sl=1)
-
-# Use actual boolean values, not integers
-selection=True  # Not selection=1
-```
-
-### Imports
-
-Use explicit imports and avoid wildcards:
-
-```python
-# Preferred
-from module import (
-    SpecificClass,
-    specificFunction,
-)
-
-# Avoid
-from module import *
 ```
 
 ## Docstring Standards
-
 We follow **Google Style Python docstrings** as documented at:
 https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 
@@ -335,7 +306,6 @@ def someMethod(self, param1):
 ### Examples Section
 
 Use pure Google Style doctest examples within docstrings.
-This format works with Sphinx and VS Code IntelliSense.
 
 ```python
 def exampleFunction(n):
@@ -384,18 +354,6 @@ class DatabaseInterface(metaclass=ABCSingleton):
     """
 ```
 
-**Why this format:**
-- Works with Sphinx and standard docstring tooling
-- Keeps examples readable in VS Code IntelliSense
-- Uses one consistent format across the repository
-
-When editing existing docstrings that use plain `>>>` doctest format,
-keep them in doctest format and do not leave mixed example formats within
-a single docstring.
-
-Do not combine reStructuredText `::` directives with Markdown fenced code
-blocks. Pick one format per repository and apply it consistently.
-
 ### Note Section
 ```python
 def complexFunction(data):
@@ -413,39 +371,6 @@ def complexFunction(data):
 
     """
 ```
-
-## Type Hints
-
-- Since moving to Python 3, we use type hints following PEP 484
-- **Do NOT add partial hints!** Either fully type a function or don't type it at all
-
-```python
-# Wrong - partial hints
-def someFunction(arg1, arg2: str, arg3):
-    ...
-
-# Right - fully typed
-def someFunction(arg1: int, arg2: str, arg3: bool) -> str:
-    ...
-
-# Right - no hints
-def someFunction(arg1, arg2, arg3):
-    ...
-```
-
-### Avoiding Circular Imports with Type Hints
-
-```python
-from __future__ import annotations
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from module import Type
-```
-
-## Required Modules and Patterns
-
-
 
 ### Exception Standards
 **Try to catch specific exceptions rather than using a broad `Exception` catch.**
@@ -488,45 +413,6 @@ def processFromFile(self, data):
 ```
 
 **Code Reuse Strategy:**
-1. **Look for existing functions first** - Before writing new code, search for similar functionality
 2. **Extract common patterns** - If you see repeated code, create a helper method
 3. **Update existing code** - When creating new reusable functions, update older sections to use them
 4. **Prefer composition over copy-paste** - Call existing methods rather than duplicating logic
-
-## Code Quality Guidelines
-
-1. **Don't Repeat Yourself (DRY)** - Always prioritize code reuse over duplication
-2. **Never override Python built-ins** - Never use `type`, `id`, `list`, `dir`, `exit`, `filter`, etc. as variable names
-3. **Follow PEP 8** for general Python style - this takes precedence over existing code style
-4. **Use meaningful variable names** that clearly indicate purpose
-5. **Write clear, concise docstrings** with the required empty line at the end
-6. **Use type hints consistently** - either fully type functions or don't type them
-7. **Prefer explicit imports** over wildcard imports
-8. **Use camelCase for functions** to distinguish from variables
-9. **Use protected variables** (`_variable`) over private ones (`__variable`)
-10. **Always use long-form keyword arguments** when available
-11. **Try to catch specific exceptions** rather than using a broad `Exception` catch
-
-## Common Patterns to Follow
-
-When suggesting code, consider these repository-specific patterns:
-
-- Package structure follows the `gt/package_name` pattern
-- Follow the Qt shim pattern for UI code
-- **Prioritize our coding standards** over matching existing inconsistent code style
-- **Always improve code quality** - don't perpetuate poor patterns just for consistency
-
-## Important Reminders for Copilot
-
-- **NEVER duplicate code** - Always look for existing functions to reuse or create new ones
-- **NEVER override Python built-ins** - Never use `type`, `id`, `list`, `dir`, `exit`, `filter`, etc. as variable names
-- **ALWAYS add an empty line at the end of docstrings** (except for single-line docstrings)
-- **Follow PEP 8 and our standards** - Don't match poor existing code style
-- Try to catch specific exceptions if able over `Exception as e`
-- Use `camelCase` for function names (not `snake_case`)
-- Follow the specific naming conventions outlined above
-- Use explicit imports and avoid wildcards
-- Prefer protected over private variables
-- Use full keyword argument names
-- Include proper type hints (all or nothing)
-- **Extract and reuse common logic** instead of copy-pasting code

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Optional
 from ..config import Config
 from ..env import loadUnrealAsset
 from .base import AbstractRule, Severity, ValidationResult
-from gt.runtime import HostType as _HostType
+from gt.runtime import HostType
 
 logger = logging.getLogger(__name__)
 

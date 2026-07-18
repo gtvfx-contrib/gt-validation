@@ -51,7 +51,14 @@ class FileSizeRule(AbstractRule):
                 "File size is managed by Unreal when running inside the Editor.",
             )
 
-        meta = self.context.collect(asset_path)
+        try:
+            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+        except (AttributeError, TypeError):
+            return self._makeSkipped(
+                asset_path,
+                "FileSizeRule skipped: unable to collect metadata from context.",
+            )
+
         size_mb = meta.sizeMb if meta else 0.0
 
         if size_mb > max_mb:
@@ -105,7 +112,14 @@ class ValidExtensionRule(AbstractRule):
                 "Asset type is available via AssetData.asset_class in Unreal.",
             )
 
-        meta = self.context.collect(asset_path)
+        try:
+            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+        except (AttributeError, TypeError):
+            return self._makeSkipped(
+                asset_path,
+                "ValidExtensionRule skipped: unable to collect metadata from context.",
+            )
+
         ext = meta.extension if meta else ""
 
         valid_exts: list = self.config.get(

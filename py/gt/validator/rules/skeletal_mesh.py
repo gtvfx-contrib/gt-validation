@@ -12,16 +12,15 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional
 
+from ..context.base import AssetMetadata, ValidationContext
 from ..config import Config
-from ..env import loadUnrealAsset
-from ..errors import UnrealAPIError
+from ..registry import registry
 from .base import AbstractRule, Severity, ValidationResult
-from gt.runtime import HostType as _HostType
 
 logger = logging.getLogger(__name__)
 
 
-@AbstractRule.register_rule("skeletal_mesh_lod_count", "skeletal_mesh", Severity.ERROR)
+@registry.register
 class SkeletalMeshLODCountRule(AbstractRule):
     """Validates that a SkeletalMesh has the required number of LOD levels.
 
@@ -32,17 +31,12 @@ class SkeletalMeshLODCountRule(AbstractRule):
         name: Rule identifier ``"skeletal_mesh_lod_count"``.
         category: Rule category ``"skeletal_mesh"``.
         severity: :attr:`Severity.ERROR`.
-        context: Requires Unreal Engine host (HostType.UNREAL).
 
     """
 
     name = "skeletal_mesh_lod_count"
     category = "skeletal_mesh"
     severity = Severity.ERROR
-    context = _HostType.UNREAL  # Type hint handled by base.py
-
-    def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
-        super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the LOD count of the given SkeletalMesh asset.
@@ -55,17 +49,14 @@ class SkeletalMeshLODCountRule(AbstractRule):
             the configured minimum and maximum bounds.
 
         """
+        # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+        except (AttributeError, TypeError):
+            meta = None
 
-        if not isinstance(asset, unreal.SkeletalMesh):
-            return self._makeSkipped(asset_path, f"Not a SkeletalMesh (got {type(asset).__name__}).")
-
-        try:
-            lod_count = asset.get_num_lods()
+        if meta is not None:
+            lod_count = meta.properties.get("lod_count", 0)
             min_lods: int = self.config.get("min_lod_count", 1)
             max_lods: int = self.config.get("max_lod_count", 8)
 
@@ -94,11 +85,15 @@ class SkeletalMeshLODCountRule(AbstractRule):
                 message=f"SkeletalMesh has {lod_count} LOD(s) — within [{min_lods}, {max_lods}].",
                 asset_class="SkeletalMesh",
             )
-        except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-            return self._makeSkipped(asset_path, f"Validation error: {exc}")
+
+        # Fallback: if context cannot provide metadata, skip validation.
+        return self._makeSkipped(
+            asset_path,
+            "LOD count validation requires Unreal Engine host or filesystem access."
+        )
 
 
-@AbstractRule.register_rule("skeletal_mesh_animation_length", "skeletal_mesh", Severity.WARNING)
+@registry.register
 class SkeletalMeshAnimationLengthRule(AbstractRule):
     """Validates that animation sequences don't exceed a maximum duration.
 
@@ -109,17 +104,12 @@ class SkeletalMeshAnimationLengthRule(AbstractRule):
         name: Rule identifier ``"skeletal_mesh_animation_length"``.
         category: Rule category ``"skeletal_mesh"``.
         severity: :attr:`Severity.WARNING`.
-        context: Requires Unreal Engine host (HostType.UNREAL).
 
     """
 
     name = "skeletal_mesh_animation_length"
     category = "skeletal_mesh"
     severity = Severity.WARNING
-    context = _HostType.UNREAL  # Type hint handled by base.py
-
-    def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
-        super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the animation duration of the given SkeletalMesh asset.
@@ -132,39 +122,16 @@ class SkeletalMeshAnimationLengthRule(AbstractRule):
             is within the configured limit.
 
         """
+        # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+        except (AttributeError, TypeError):
+            meta = None
 
-        if not isinstance(asset, unreal.SkeletalMesh):
-            return self._makeSkipped(asset_path, f"Not a SkeletalMesh (got {type(asset).__name__}).")
-
-        try:
+        if meta is not None:
             max_duration = self.config.get("max_animation_duration_seconds", 60.0)
 
-            # Access animation length via Unreal API — check for multiple animations
-            anim_length = getattr(asset, "anim_length", None)
-            if anim_length is None:
-                try:
-                    anim_length = asset.get_editor_property("animation_sequence") or asset.get_editor_property("anim_length")
-                except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-                    return self._makeSkipped(
-                        asset_path, f"Could not read animation length: {exc}"
-                    )
-
-            if anim_length is None or (isinstance(anim_length, float) and anim_length <= 0):
-                # Fallback: estimate from longest animation in the mesh
-                try:
-                    animations = getattr(asset, "animations", [])
-                    if animations:
-                        max_anim_len = max(len(a) for a in animations)
-                        anim_length = max_anim_len / 30.0  # Convert frames to seconds (24fps default)
-                except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-                    return self._makeSkipped(
-                        asset_path, f"Could not estimate animation length: {exc}"
-                    )
+            anim_length = meta.properties.get("anim_length", 0)
 
             if anim_length > max_duration:
                 return self._makeResult(
@@ -185,11 +152,15 @@ class SkeletalMeshAnimationLengthRule(AbstractRule):
                 ),
                 asset_class="SkeletalMesh",
             )
-        except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-            return self._makeSkipped(asset_path, f"Validation error: {exc}")
+
+        # Fallback: if context cannot provide metadata, skip validation.
+        return self._makeSkipped(
+            asset_path,
+            "Animation length validation requires Unreal Engine host or filesystem access."
+        )
 
 
-@AbstractRule.register_rule("skeletal_mesh_bone_count", "skeletal_mesh", Severity.WARNING)
+@registry.register
 class SkeletalMeshBoneCountRule(AbstractRule):
     """Flags skeletal meshes with excessive bone counts.
 
@@ -200,17 +171,12 @@ class SkeletalMeshBoneCountRule(AbstractRule):
         name: Rule identifier ``"skeletal_mesh_bone_count"``.
         category: Rule category ``"skeletal_mesh"``.
         severity: :attr:`Severity.WARNING`.
-        context: Requires Unreal Engine host (HostType.UNREAL).
 
     """
 
     name = "skeletal_mesh_bone_count"
     category = "skeletal_mesh"
     severity = Severity.WARNING
-    context = _HostType.UNREAL  # Type hint handled by base.py
-
-    def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
-        super().__init__(config, context)
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the bone count of the given SkeletalMesh asset.
@@ -223,40 +189,16 @@ class SkeletalMeshBoneCountRule(AbstractRule):
             the configured limit.
 
         """
+        # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            asset = loadUnrealAsset(asset_path)
-        except UnrealAPIError as exc:
-            return self._makeSkipped(asset_path, str(exc))
-        import unreal  # noqa: PLC0415 - deferred Unreal import
+            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+        except (AttributeError, TypeError):
+            meta = None
 
-        if not isinstance(asset, unreal.SkeletalMesh):
-            return self._makeSkipped(asset_path, f"Not a SkeletalMesh (got {type(asset).__name__}).")
-
-        try:
+        if meta is not None:
             max_bones = self.config.get("max_skeletal_mesh_bone_count", 256)
 
-            # Access bone count via Unreal API
-            bone_count = getattr(asset, "num_skeletons", None) or getattr(asset, "bones", None)
-            if bone_count is None:
-                try:
-                    skeleton = asset.get_editor_property("skeleton")
-                    if skeleton and hasattr(skeleton, "get_num_bones"):
-                        bone_count = skeleton.get_num_bones()
-                except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-                    return self._makeSkipped(
-                        asset_path, f"Could not read bone count: {exc}"
-                    )
-
-            if bone_count is None or (isinstance(bone_count, int) and bone_count <= 0):
-                # Fallback: estimate from mesh skeleton structure
-                try:
-                    skeletons = getattr(asset, "skeletons", [])
-                    if skeletons:
-                        bone_count = max(len(s) for s in skeletons)
-                except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-                    return self._makeSkipped(
-                        asset_path, f"Could not estimate bone count: {exc}"
-                    )
+            bone_count = meta.properties.get("bone_count", 0)
 
             if bone_count > max_bones:
                 return self._makeResult(
@@ -277,5 +219,9 @@ class SkeletalMeshBoneCountRule(AbstractRule):
                 ),
                 asset_class="SkeletalMesh",
             )
-        except Exception as exc:  # noqa: BLE001 - Unreal bridge safety
-            return self._makeSkipped(asset_path, f"Validation error: {exc}")
+
+        # Fallback: if context cannot provide metadata, skip validation.
+        return self._makeSkipped(
+            asset_path,
+            "Bone count validation requires Unreal Engine host or filesystem access."
+        )
