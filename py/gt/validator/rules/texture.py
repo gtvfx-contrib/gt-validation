@@ -50,13 +50,24 @@ class TextureDimensionRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
         if meta is not None:
-            width, height = meta.width, meta.height
-            
+            # AssetMetadata has no width/height attributes — dimension data
+            # (when a context provides it) lives in the `properties` dict,
+            # same as bounds/LOD data elsewhere in this framework.
+            width = meta.properties.get("width", 0)
+            height = meta.properties.get("height", 0)
+
+            if not width or not height:
+                return self._makeSkipped(
+                    asset_path,
+                    "Texture dimension validation requires width/height metadata "
+                    "not provided by the current context.",
+                )
+
             max_dim: int = self.config.get("max_texture_dimension", 4096)
 
             def isPowerOfTwo(n: int) -> bool:
@@ -121,7 +132,7 @@ class TextureCompressionRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -194,7 +205,7 @@ class TextureSampleRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -205,9 +216,19 @@ class TextureSampleRule(AbstractRule):
             num_mips = meta.properties.get("mip_count")
             
             if num_mips is None or (isinstance(num_mips, int) and num_mips <= 0):
-                # Estimate from resolution.
+                # Estimate from resolution. `width` lives in `properties` (no
+                # `.width` attribute exists on AssetMetadata). `min(x)` on a
+                # single non-iterable int previously raised TypeError — the
+                # min() wrapper was a no-op bug and has been removed.
+                width = meta.properties.get("width", 0)
+                if not width:
+                    return self._makeSkipped(
+                        asset_path,
+                        "Texture MIP count validation requires mip_count or "
+                        "width metadata not provided by the current context.",
+                    )
                 max_dim = self.config.get("max_texture_dimension", 4096)
-                estimated_mips = min(int(round(max(1, int((meta.width / max_dim).bit_length())))) + 1)
+                estimated_mips = max(1, int((width / max_dim).bit_length())) + 1
                 num_mips = estimated_mips
 
             if num_mips > max_samples:

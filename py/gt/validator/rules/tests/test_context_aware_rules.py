@@ -21,8 +21,8 @@ from unittest.mock import Mock
 from gt.runtime import HostType
 
 from gt.validator.config import Config  # type: ignore
+from gt.validator.registry import registry
 from gt.validator.rules.base import AbstractRule, Severity
-from gt.validator.rules.registry import registry
 
 
 class TestContextAwareRules(unittest.TestCase):

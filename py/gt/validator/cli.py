@@ -180,7 +180,10 @@ def _dispatchToUnreal(argv: list[str]) -> int:
 
     env = os.environ.copy()
     env["VALIDATOR_DISPATCH_ARGV"] = json.dumps(argv)
-    env["VALIDATOR_SESSION_DIR"] = str(Path(__file__).parents[1])
+    # Two levels up from cli.py (.../py/gt/validator/cli.py) is .../py — the
+    # namespace-package root that must be on sys.path for `gt.validator` to
+    # resolve inside the Unreal Editor's Python interpreter.
+    env["VALIDATOR_SESSION_DIR"] = str(Path(__file__).parents[2])
     env.setdefault("VALIDATOR_MAX_WORKERS", "1")  # Unreal thread safety default
 
     print("[CLI] Dispatching to Unreal Editor...")
@@ -378,6 +381,20 @@ def main(argv: list[str] | None = None) -> int:
 
     """
     import logging
+
+    # ConsoleFormatter and --list-rules output use box-drawing and status
+    # glyphs (━, ✓, ✗, ↷, …). On Windows, stdout/stderr are not guaranteed to
+    # be UTF-8 (e.g. legacy cp1252 console codepage, or a pipe/redirect with
+    # no encoding hint) — encoding those glyphs then raises
+    # UnicodeEncodeError ("'charmap' codec can't encode character..."),
+    # which the broad except below reports as a generic CLI error. Force
+    # UTF-8 with a safe fallback so report output never crashes the CLI
+    # regardless of the host console's codepage.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass  # Non-reconfigurable stream (e.g. captured in tests) — ignore.
 
     # Normalise early so _dispatchToUnreal can forward the real argv.
     if argv is None:

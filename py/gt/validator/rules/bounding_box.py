@@ -8,7 +8,9 @@ Rules:
 
 from __future__ import annotations
 
-from ..context.base import AssetMetadata, ValidationContext
+from gt.runtime import HostType
+
+from ..context.base import AssetMetadata
 from ..registry import registry
 from .base import AbstractRule, Severity, ValidationResult
 
@@ -47,12 +49,15 @@ class BoundingBoxExtentRule(AbstractRule):
         name: Rule identifier ``"bounding_box_extent"``.
         category: Rule category ``"bounding_box"``.
         severity: :attr:`Severity.WARNING`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — bounding
+            box extent data is an Unreal-only asset concept.
 
     """
 
     name = "bounding_box_extent"
     category = "bounding_box"
     severity = Severity.WARNING
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the bounding box extent of the given mesh asset.
@@ -67,7 +72,7 @@ class BoundingBoxExtentRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -116,12 +121,15 @@ class BoundingBoxOriginRule(AbstractRule):
         name: Rule identifier ``"bounding_box_origin"``.
         category: Rule category ``"bounding_box"``.
         severity: :attr:`Severity.WARNING`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — pivot
+            offset data is an Unreal-only asset concept.
 
     """
 
     name = "bounding_box_origin"
     category = "bounding_box"
     severity = Severity.WARNING
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate that the mesh pivot is close to the world origin.
@@ -136,7 +144,7 @@ class BoundingBoxOriginRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 

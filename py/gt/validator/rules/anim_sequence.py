@@ -9,17 +9,17 @@ Rules:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
 
-from ..config import Config
-from ..env import loadUnrealAsset
-from .base import AbstractRule, Severity, ValidationResult
 from gt.runtime import HostType
+
+from ..env import loadUnrealAsset
+from ..registry import registry
+from .base import AbstractRule, Severity, ValidationResult
 
 logger = logging.getLogger(__name__)
 
 
-@AbstractRule.register_rule("anim_sequence_frame_count", "anim_sequence", Severity.WARNING)
+@registry.register
 class AnimSequenceFrameCountRule(AbstractRule):
     """Checks animation sequences for excessive frame counts.
 
@@ -37,10 +37,7 @@ class AnimSequenceFrameCountRule(AbstractRule):
     name = "anim_sequence_frame_count"
     category = "anim_sequence"
     severity = Severity.WARNING
-    context = _HostType.UNREAL  # Type hint handled by base.py
-
-    def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
-        super().__init__(config, context)
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the frame count of the given AnimSequence asset.
@@ -108,7 +105,7 @@ class AnimSequenceFrameCountRule(AbstractRule):
             return self._makeSkipped(asset_path, f"Validation error: {exc}")
 
 
-@AbstractRule.register_rule("anim_sequence_duration_limit", "anim_sequence", Severity.WARNING)
+@registry.register
 class AnimSequenceDurationLimitRule(AbstractRule):
     """Validates animation duration doesn't exceed thresholds.
 
@@ -126,10 +123,7 @@ class AnimSequenceDurationLimitRule(AbstractRule):
     name = "anim_sequence_duration_limit"
     category = "anim_sequence"
     severity = Severity.WARNING
-    context = _HostType.UNREAL  # Type hint handled by base.py
-
-    def __init__(self, config: Config, context: Optional[_HostType] = None) -> None:
-        super().__init__(config, context)
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the duration of the given AnimSequence asset.

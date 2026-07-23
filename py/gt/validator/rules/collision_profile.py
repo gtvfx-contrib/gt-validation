@@ -11,6 +11,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional
 
+from gt.runtime import HostType
+
 from ..context.base import AssetMetadata, ValidationContext
 from ..config import Config
 from ..registry import registry
@@ -30,12 +32,15 @@ class CollisionProfileValidatorRule(AbstractRule):
         name: Rule identifier ``"collision_profile_validator"``.
         category: Rule category ``"collision_profile"``.
         severity: :attr:`Severity.ERROR`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — collision
+            profile data is an Unreal-only asset concept.
 
     """
 
     name = "collision_profile_validator"
     category = "collision_profile"
     severity = Severity.ERROR
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the collision profile configuration of the given asset.
@@ -49,7 +54,7 @@ class CollisionProfileValidatorRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -96,12 +101,15 @@ class CollisionLODTransitionSmoothnessRule(AbstractRule):
         name: Rule identifier ``"collision_lod_transition_smoothness"``.
         category: Rule category ``"collision_profile"``.
         severity: :attr:`Severity.WARNING`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — LOD
+            transition data is an Unreal-only asset concept.
 
     """
 
     name = "collision_lod_transition_smoothness"
     category = "collision_profile"
     severity = Severity.WARNING
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate LOD transition smoothness for the given mesh asset.
@@ -115,7 +123,7 @@ class CollisionLODTransitionSmoothnessRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 

@@ -45,7 +45,7 @@ class NamingConventionRule(AbstractRule):
         """
         # Use context to collect metadata when available.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -104,9 +104,16 @@ class PrefixConventionRule(AbstractRule):
         """
         # Use context to collect metadata when available.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
+
+        # Compute `filename` unconditionally (used in messages below,
+        # regardless of which stem/ext branch runs) — previously this was
+        # only assigned in the filesystem-fallback branch, causing an
+        # UnboundLocalError whenever a context was supplied, which is the
+        # normal case in production (ValidationRunner always injects one).
+        filename = os.path.basename(asset_path)
 
         if meta is not None:
             stem = meta.name or ""
@@ -118,7 +125,6 @@ class PrefixConventionRule(AbstractRule):
             stem = asset_path.rstrip('/').split('/')[-1]
             ext = ""
         else:
-            filename = os.path.basename(asset_path)
             stem, ext = os.path.splitext(filename)
             ext = ext.lower()
 
@@ -197,12 +203,15 @@ class FilenameLengthRule(AbstractRule):
         """
         # Use context to collect metadata when available.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
         if meta is not None:
-            filename = meta.name or ""
+            # meta.name is a stem (no extension, matching UnrealContext's
+            # contract) — reconstruct the full filename for a length check
+            # that matches real on-disk filename length limits.
+            filename = (meta.name or "") + (meta.extension or "")
         else:
             filename = os.path.basename(asset_path)
 

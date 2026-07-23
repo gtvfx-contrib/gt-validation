@@ -96,6 +96,7 @@ class AbstractRule(ABC):
         category: Rule category string used for grouping in reports.
         severity: Default :class:`Severity` for non-passing results.
         context: Required host type for this rule (e.g., ``HostType.UNREAL``).
+        contexts: Optional tuple/list of acceptable host types for multi-context rules.
 
     """
 
@@ -103,6 +104,7 @@ class AbstractRule(ABC):
     category: str = ""
     severity: Severity = Severity.ERROR
     context: Optional[HostType] = None  # Type: HostType
+    contexts: Optional[tuple | list] = None
 
     def __init__(self, config: Config, context=None) -> None:  # type: ignore[assignment]
         """Initialise the rule with config and optional validation context.
@@ -119,7 +121,10 @@ class AbstractRule(ABC):
 
         """
         self.config = config
-        
+        # Always initialise `contexts` so isEnabled() can safely check it below,
+        # regardless of which branch is taken for the single-context `context` attr.
+        self.contexts: Optional[tuple | list] = None
+
         if isinstance(context, (tuple, list)):
             # Multi-context support: store as-is for isEnabled() matching logic
             self.contexts = context  # type: ignore[assignment]
@@ -157,8 +162,12 @@ class AbstractRule(ABC):
                 elif ctx == current_host:
                     return True
 
-        # Single declared context (e.g. HostType.UNREAL).
-        rule_ctx = getattr(self, 'context', None)
+        # Single declared context (e.g. HostType.UNREAL). Read the *class*
+        # attribute rather than the instance attribute: ValidationRunner
+        # overwrites `self.context` (instance) with a ValidationContext
+        # instance (for `.collect()` metadata access), which would otherwise
+        # shadow the rule's declared HostType requirement here.
+        rule_ctx = getattr(type(self), 'context', None)
         if rule_ctx is not None and not isinstance(rule_ctx, type(None)):
             try:
                 current_host = getCurrentHost()

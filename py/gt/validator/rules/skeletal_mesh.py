@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional
 
+from gt.runtime import HostType
+
 from ..context.base import AssetMetadata, ValidationContext
 from ..config import Config
 from ..registry import registry
@@ -31,12 +33,15 @@ class SkeletalMeshLODCountRule(AbstractRule):
         name: Rule identifier ``"skeletal_mesh_lod_count"``.
         category: Rule category ``"skeletal_mesh"``.
         severity: :attr:`Severity.ERROR`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — SkeletalMesh
+            LOD data is an Unreal-only asset concept.
 
     """
 
     name = "skeletal_mesh_lod_count"
     category = "skeletal_mesh"
     severity = Severity.ERROR
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the LOD count of the given SkeletalMesh asset.
@@ -51,7 +56,7 @@ class SkeletalMeshLODCountRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -104,12 +109,15 @@ class SkeletalMeshAnimationLengthRule(AbstractRule):
         name: Rule identifier ``"skeletal_mesh_animation_length"``.
         category: Rule category ``"skeletal_mesh"``.
         severity: :attr:`Severity.WARNING`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — animation
+            length data is an Unreal-only asset concept.
 
     """
 
     name = "skeletal_mesh_animation_length"
     category = "skeletal_mesh"
     severity = Severity.WARNING
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the animation duration of the given SkeletalMesh asset.
@@ -124,7 +132,7 @@ class SkeletalMeshAnimationLengthRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
@@ -171,12 +179,15 @@ class SkeletalMeshBoneCountRule(AbstractRule):
         name: Rule identifier ``"skeletal_mesh_bone_count"``.
         category: Rule category ``"skeletal_mesh"``.
         severity: :attr:`Severity.WARNING`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — bone count
+            data is an Unreal-only asset concept.
 
     """
 
     name = "skeletal_mesh_bone_count"
     category = "skeletal_mesh"
     severity = Severity.WARNING
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the bone count of the given SkeletalMesh asset.
@@ -191,7 +202,7 @@ class SkeletalMeshBoneCountRule(AbstractRule):
         """
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 

@@ -52,7 +52,7 @@ class FileSizeRule(AbstractRule):
             )
 
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             return self._makeSkipped(
                 asset_path,
@@ -113,7 +113,7 @@ class ValidExtensionRule(AbstractRule):
             )
 
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             return self._makeSkipped(
                 asset_path,

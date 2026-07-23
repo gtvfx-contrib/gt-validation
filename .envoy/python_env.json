@@ -1,6 +1,5 @@
 {
     "+=PYTHONPATH": "${__BUNDLE__}/py",
-    "+=ENVOY_VALIDATION_RULES": ["${__BUNDLE__}/py/gt/validation/rules"],
     "environment_allowlist": [
         "VALIDATOR_UNREAL_CMD",
         "VALIDATOR_UNREAL_PROJECT",
@@ -10,6 +9,7 @@
         "VALIDATOR_SEVERITY",
         "VALIDATOR_DEBUG",
         "VALIDATOR_DRY_RUN",
-        "VALIDATOR_CONFIG_PATH"
+        "VALIDATOR_CONFIG_PATH",
+        "ENVOY_VALIDATION_RULES"
     ]
 }

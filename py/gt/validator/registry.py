@@ -22,6 +22,7 @@ import importlib.util
 import logging
 import os
 import pkgutil
+import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -87,10 +88,13 @@ class RuleRegistry:
     def discover(self) -> None:
         """Auto-discover and import all rule modules from configured paths.
 
-        Checks the ``ENVOY_VALIDATION_RULES`` environment variable for multiple
-        paths (separated by ``os.pathsep``). If set, discovers and imports rule
-        modules from each path. If not set, falls back to the default ``rules``
-        subpackage.
+        Always imports the built-in ``rules`` subpackage first. If the
+        ``ENVOY_VALIDATION_RULES`` environment variable is also set (one or
+        more paths separated by ``os.pathsep``), rule modules from each of
+        those paths are discovered *in addition to* the built-ins — studio
+        overlays extend the rule set, they never replace it. A missing or
+        misconfigured entry logs a warning and is skipped rather than
+        silently reducing the active rule set to zero.
 
         Triggers module-level ``@registry.register`` decorators, populating
         the registry without requiring explicit imports.  Subsequent calls are
@@ -101,23 +105,34 @@ class RuleRegistry:
             return
         type(self)._discovered = True
 
+        # Always load the built-in rules package first. ENVOY_VALIDATION_RULES
+        # (below) is additive — it contributes extra, studio-specific rule
+        # paths on top of the built-ins, it never replaces them. Silently
+        # discovering zero rules just because a studio overlay path is
+        # missing/misconfigured would be a dangerous, hard-to-notice failure
+        # mode for a validation tool.
+        from . import rules as rules_pkg
+
+        self._discover_from_package(rules_pkg)
+
         # Check for ENVOY_VALIDATION_RULES environment variable
         env_paths = os.environ.get("ENVOY_VALIDATION_RULES")
         if env_paths:
             # Split by os.pathsep to get multiple paths
-            paths = env_paths.split(os.pathsep)
+            paths = [p for p in env_paths.split(os.pathsep) if p]
             logger.info("[Registry] Discovering rules from %d configured path(s)", len(paths))
 
             for path in paths:
-                if not path:
+                if not os.path.isdir(path):
+                    logger.warning(
+                        "[Registry] ENVOY_VALIDATION_RULES entry does not exist "
+                        "or is not a directory — skipping: '%s'",
+                        path,
+                    )
                     continue
                 self._discover_from_path(path)
         else:
-            # Fall back to default rules subpackage
-            logger.debug("[Registry] ENVOY_VALIDATION_RULES not set, using default rules package")
-            from . import rules as rules_pkg
-
-            self._discover_from_package(rules_pkg)
+            logger.debug("[Registry] ENVOY_VALIDATION_RULES not set; built-in rules only.")
 
     def _discover_from_path(self, path: str) -> None:
         """Discover and import rule modules from a specific path.
@@ -160,7 +175,20 @@ class RuleRegistry:
                 continue
             full_name = f"{package.__name__}.{module_name}"
             try:
-                importlib.import_module(full_name)
+                if full_name in sys.modules:
+                    # Plain importlib.import_module() is a no-op for an
+                    # already-cached module — Python does not re-run a
+                    # module's top-level code on repeat imports, so its
+                    # `@registry.register` decorators would not fire again.
+                    # Without this, calling clear() after any built-in rule
+                    # module has already been imported once (e.g. by a test
+                    # importing a rule class directly) would permanently
+                    # empty the registry for the rest of the process, since
+                    # discover() could never re-populate it. Reload forces
+                    # the module body (and its decorators) to run again.
+                    importlib.reload(sys.modules[full_name])
+                else:
+                    importlib.import_module(full_name)
                 logger.debug("[Registry] Discovered module: %s", full_name)
             except ImportError as exc:
                 logger.warning("[Registry] Could not import '%s': %s", full_name, exc)

@@ -6,7 +6,8 @@ Rules:
 
 from __future__ import annotations
 
-from ..context.base import AssetMetadata, ValidationContext
+from gt.runtime import HostType
+
 from ..registry import registry
 from .base import AbstractRule, Severity, ValidationResult
 
@@ -22,12 +23,15 @@ class NiagaraFixedBoundsRule(AbstractRule):
         name: Rule identifier ``"niagara_fixed_bounds"``.
         category: Rule category ``"niagara"``.
         severity: :attr:`Severity.ERROR`.
+        context: Requires Unreal Engine host (HostType.UNREAL) — Niagara
+            systems are an Unreal-only asset concept.
 
     """
 
     name = "niagara_fixed_bounds"
     category = "niagara"
     severity = Severity.ERROR
+    context = HostType.UNREAL
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate that fixed bounds are configured on the given Niagara system.
@@ -50,7 +54,7 @@ class NiagaraFixedBoundsRule(AbstractRule):
 
         # Use context abstraction to collect metadata instead of direct Unreal API calls.
         try:
-            meta = self.context.collect(asset_path) if callable(getattr(self, 'context', None)) else None
+            meta = self.context.collect(asset_path) if getattr(self, 'context', None) is not None else None
         except (AttributeError, TypeError):
             meta = None
 
