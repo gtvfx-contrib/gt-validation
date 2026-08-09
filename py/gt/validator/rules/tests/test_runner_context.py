@@ -109,5 +109,70 @@ class TestValidationRunnerContext(unittest.TestCase):
         self.assertNotIn("sample_unreal_only_rule", active_names)
 
 
+class TestValidationRunnerUnrealContextInstantiation(unittest.TestCase):
+    """End-to-end regression test for HostType.UNREAL rule instantiation.
+
+    Every other ValidationRunner test in this suite mocks
+    ``HostType.STANDALONE``, which causes the context-filter to exclude all
+    ``HostType.UNREAL``-gated rules *before* instantiation is attempted. That
+    left a coverage blind spot: a rule class whose ``__init__`` signature is
+    incompatible with the ``validation_context=`` keyword that
+    ``ValidationRunner`` always passes would raise ``TypeError`` and abort
+    the entire runner construction — but only when actually selected for
+    instantiation under ``HostType.UNREAL``, which no test previously
+    exercised. (This is exactly what happened with the built-in
+    ``MaterialSlotCountRule``/``MaterialComplexityRule``/
+    ``MaxTranslucentMaterialsRule`` rules before their ``__init__``
+    overrides were removed.)
+
+    This test mocks ``HostType.UNREAL`` and performs a full, real
+    ``ValidationRunner`` construction (registry discovery + context
+    filtering + instantiation of every matching built-in rule) to guarantee
+    that scenario never silently breaks again.
+    """
+
+    def setUp(self) -> None:
+        """Clear the registry and force UNREAL host for each test."""
+        registry.clear()
+        self.config = Config()
+        self._host_patcher = patch(
+            "gt.runtime.RuntimeDetector.getCurrentHost",
+            return_value=HostType.UNREAL,
+        )
+        self._host_patcher.start()
+
+    def tearDown(self) -> None:
+        """Stop the host-type monkeypatch."""
+        self._host_patcher.stop()
+
+    def test_runner_constructs_without_raising_under_unreal_context(self) -> None:
+        """ValidationRunner must build successfully when the host is UNREAL."""
+        try:
+            runner = ValidationRunner(self.config)
+        except TypeError as exc:  # pragma: no cover - failure path under test
+            self.fail(
+                "ValidationRunner raised TypeError while instantiating "
+                f"HostType.UNREAL rules: {exc}"
+            )
+        self.assertGreater(len(runner.rules), 0)
+
+    def test_all_unreal_gated_builtin_rules_are_instantiated(self) -> None:
+        """Every built-in HostType.UNREAL rule (incl. material.py) must be constructed."""
+        runner = ValidationRunner(self.config)
+        active_names = {r.name for r in runner.rules}
+
+        expected_unreal_rule_names = {
+            "material_slot_count",
+            "material_complexity",
+            "max_translucent_materials",
+            "overdraw_heuristic",
+        }
+        missing = expected_unreal_rule_names - active_names
+        self.assertFalse(
+            missing,
+            f"Expected HostType.UNREAL rules missing from runner.rules: {missing}",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

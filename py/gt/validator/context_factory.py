@@ -16,6 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class ContextFactory:
     """Singleton factory that selects a :class:`ValidationContext` based on the current host.
 
@@ -71,7 +72,8 @@ class ContextFactory:
         self._contexts[host_type_value] = context_cls
         logger.debug(
             "[ContextFactory] Registered %s for host type '%s'.",
-            context_cls.__name__, host_type_value,
+            context_cls.__name__,
+            host_type_value,
         )
 
     # ------------------------------------------------------------------
@@ -100,7 +102,8 @@ class ContextFactory:
                 if ctx_cls is not None:
                     logger.debug(
                         "[ContextFactory] Selected %s for host '%s'.",
-                        ctx_cls.__name__, current.value,
+                        ctx_cls.__name__,
+                        current.value,
                     )
                     return ctx_cls()
         except ImportError:
@@ -112,6 +115,7 @@ class ContextFactory:
             "[ContextFactory] No specific match found; using FilesystemContext.",
         )
         return FilesystemContext()
+
 
 # Pre-register the built-in contexts so get_context() works immediately.
 def _register_default_contexts(factory: ContextFactory) -> None:
@@ -131,6 +135,7 @@ def _register_default_contexts(factory: ContextFactory) -> None:
     factory.register("HOUDINI", HoudiniContext)
     factory.register("BLENDER", BlenderContext)
     factory.register("KRITA", KritaContext)
+
 
 # Register defaults when module is imported.
 _factory = ContextFactory.get_instance()

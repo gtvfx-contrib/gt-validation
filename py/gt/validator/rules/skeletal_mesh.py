@@ -71,8 +71,7 @@ class SkeletalMeshLODCountRule(AbstractRule):
                     asset_path,
                     passed=False,
                     message=(
-                        f"SkeletalMesh has {lod_count} LOD(s) — minimum required is "
-                        f"{min_lods}."
+                        f"SkeletalMesh has {lod_count} LOD(s) — minimum required is {min_lods}."
                     ),
                     asset_class="SkeletalMesh",
                     fix_hint=(

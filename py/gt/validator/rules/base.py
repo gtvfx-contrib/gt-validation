@@ -269,3 +269,37 @@ class AbstractRule(ABC):
             skipped=True,
             timestamp=datetime.now().isoformat(),
         )
+
+    def _makeFailure(
+        self,
+        asset_path: str,
+        message: str,
+        duration_ms: float = 0.0,
+        asset_class: str = "",
+        fix_hint: str = "",
+    ) -> ValidationResult:
+        """Build a failed :class:`ValidationResult` using the rule's declared severity.
+
+        Convenience wrapper around :meth:`_makeResult` for the common case of
+        reporting a failure — equivalent to
+        ``self._makeResult(asset_path, passed=False, message=message, ...)``.
+
+        Args:
+            asset_path: Content-browser or filesystem path of the validated asset.
+            message: Human-readable explanation of the failure.
+            duration_ms: Wall-clock time taken for this check, in milliseconds.
+            asset_class: Unreal asset class name if known, e.g. ``"StaticMesh"``.
+            fix_hint: Brief suggestion for resolving the failure.
+
+        Returns:
+            A failed :class:`ValidationResult` (``passed=False``, ``skipped=False``).
+
+        """
+        return self._makeResult(
+            asset_path,
+            passed=False,
+            message=message,
+            duration_ms=duration_ms,
+            asset_class=asset_class,
+            fix_hint=fix_hint,
+        )

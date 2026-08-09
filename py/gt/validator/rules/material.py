@@ -10,15 +10,11 @@ Rules:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 from gt.runtime import HostType
 
 from ..registry import registry
 from .base import AbstractRule, Severity, ValidationResult
-
-if TYPE_CHECKING:
-    from ..config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -55,17 +51,6 @@ class MaterialSlotCountRule(AbstractRule):
     severity = Severity.WARNING
     context = HostType.UNREAL  # Only runs in Unreal
 
-    def __init__(self, config: Config, context: HostType | None = None) -> None:
-        """Initialize the MaterialSlotCountRule.
-
-        Args:
-            config (Config): Configuration instance with material slot limits.
-            context (HostType, optional): Host type for rule execution. Defaults to STANDALONE.
-
-        """
-        super().__init__(config)
-        self.context = context or HostType.STANDALONE
-
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the material slot count for the given asset.
 
@@ -89,7 +74,7 @@ class MaterialSlotCountRule(AbstractRule):
             return self._makeSkipped(
                 asset_path,
                 f"MaterialSlotCountRule applies to Material assets only "
-                f"(got {type(asset).__name__})."
+                f"(got {type(asset).__name__}).",
             )
 
         try:
@@ -139,17 +124,6 @@ class MaterialComplexityRule(AbstractRule):
     category = "material"
     severity = Severity.INFO
     context = HostType.UNREAL  # Only runs in Unreal
-
-    def __init__(self, config: Config, context: HostType | None = None) -> None:
-        """Initialize the MaterialOverdrawHeuristicRule.
-
-        Args:
-            config (Config): Configuration instance with material complexity limits.
-            context (HostType, optional): Host type for rule execution. Defaults to STANDALONE.
-
-        """
-        super().__init__(config)
-        self.context = context or HostType.STANDALONE
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Check *asset_path* for heuristic overdraw risk indicators.
@@ -240,17 +214,6 @@ class MaxTranslucentMaterialsRule(AbstractRule):
     category = "material"
     severity = Severity.WARNING
     context = HostType.UNREAL  # Only runs in Unreal
-
-    def __init__(self, config: Config, context: HostType | None = None) -> None:
-        """Initialize the MaxTranslucentMaterialsRule.
-
-        Args:
-            config (Config): Configuration instance with translucent material limits.
-            context (HostType, optional): Host type for rule execution. Defaults to STANDALONE.
-
-        """
-        super().__init__(config)
-        self.context = context or HostType.STANDALONE
 
     def validate(self, asset_path: str) -> ValidationResult:
         """Validate the total translucent material count for a level/package.

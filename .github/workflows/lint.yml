@@ -12,7 +12,7 @@ permissions:
 jobs:
   ruff:
     name: Ruff (lint + format check)
-    runs-on: ["self-hosted", "Linux", "X64", "synology"]
+    runs-on: ["self-hosted", "Linux", "X64"]
 
     steps:
       - name: Checkout

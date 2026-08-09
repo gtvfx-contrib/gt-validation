@@ -4,13 +4,59 @@ import importlib
 import inspect
 from pathlib import Path
 
-# Add py directory to path
-py_dir = Path(__file__).parent / "py"
+# Add py directory to path (validation/py, one level up from this script in
+# validation/tests/).
+py_dir = Path(__file__).parent.parent / "py"
 import sys
 sys.path.insert(0, str(py_dir))
 
 from gt.validator.rules.base import AbstractRule
 from gt.runtime import HostType
+
+
+def _check_init_signature(cls) -> str | None:
+    """Flag __init__ overrides incompatible with ValidationRunner's instantiation contract.
+
+    ``ValidationRunner`` always instantiates every selected rule class via
+    ``R(config, validation_context=ctx)``. A rule that overrides ``__init__``
+    without accepting a ``validation_context`` parameter (or **kwargs) will
+    raise ``TypeError`` the moment it is selected for instantiation under its
+    declared host context — a defect that is invisible to test suites which
+    only ever mock a *different* HostType (since the runner's context-filter
+    excludes the rule from instantiation entirely in that case). This is
+    exactly the bug that shipped in ``MaterialSlotCountRule`` /
+    ``MaterialComplexityRule`` / ``MaxTranslucentMaterialsRule`` before their
+    broken ``__init__`` overrides were removed.
+
+    Args:
+        cls: A rule class (``AbstractRule`` subclass) to inspect.
+
+    Returns:
+        A human-readable issue description if the ``__init__`` override is
+        incompatible with the base contract, or ``None`` if the class either
+        inherits ``AbstractRule.__init__`` unchanged or its override safely
+        accepts ``validation_context``.
+
+    """
+    if "__init__" not in cls.__dict__:
+        return None  # Inherits AbstractRule.__init__ unchanged — always compatible.
+
+    try:
+        sig = inspect.signature(cls.__dict__["__init__"])
+    except (TypeError, ValueError):
+        return None
+
+    params = sig.parameters
+    has_var_kwargs = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+    if has_var_kwargs or "validation_context" in params:
+        return None
+
+    return (
+        "__init__ override does not accept a 'validation_context' parameter — "
+        "ValidationRunner always instantiates rules via "
+        "R(config, validation_context=ctx), so this will raise TypeError as soon "
+        "as this rule's context matches the active host."
+    )
 
 
 def audit_rules():
@@ -68,6 +114,15 @@ def audit_rules():
                         'issue': f'Unreal-only rule has STANDALONE context (should be UNREAL)',
                         'severity': 'WARNING'
                     })
+
+        init_issue = _check_init_signature(cls)
+        if init_issue is not None:
+            issues.append({
+                'class': class_name,
+                'module': module_name,
+                'issue': init_issue,
+                'severity': 'ERROR',
+            })
     
     print("=" * 80)
     print(f"\nFound {len(issues)} issues:\n")

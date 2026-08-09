@@ -27,11 +27,13 @@ def find_repo_root():
             raise FileNotFoundError("Could not find repository root (no pyproject.toml found)")
         current = parent
 
+
 REPO_ROOT = find_repo_root()
 
 # Test file is at: py/gt/validator/rules/tests/test_cli_smoke.py
 # Going up 4 levels gets us to repo root (tests -> rules -> validator -> gt -> repo_root)
 SAMPLE_DIR = REPO_ROOT / "resource" / "sample_content" / "filesystem_pack"
+
 
 def find_envoy_binary():
     """Find the envoy binary, trying multiple locations.
@@ -61,16 +63,19 @@ def find_envoy_binary():
 
     # Try to find via shutil.which (works if on PATH)
     import shutil
+
     envoy_path = shutil.which("envoy")
     if envoy_path:
         return envoy_path
 
     raise FileNotFoundError(
-        "Could not find envoy binary. Tried:\n" +
-        "\n".join(f"  - {c}" for c in candidates + bat_candidates)
+        "Could not find envoy binary. Tried:\n"
+        + "\n".join(f"  - {c}" for c in candidates + bat_candidates)
     )
 
+
 ENVOY_BINARY = find_envoy_binary()
+
 
 def run_validate(*args, **kwargs):
     """Run envoy validate with given arguments and return result."""
@@ -90,7 +95,7 @@ def run_validate(*args, **kwargs):
             env=env,
             cwd=str(REPO_ROOT),  # Set working directory to repo root
             shell=True,  # Required for proper PATH resolution in envoy Python environment
-            **kwargs
+            **kwargs,
         )
         # Ensure stdout/stderr are strings (not None)
         if result.stdout is None:
@@ -106,7 +111,9 @@ def run_validate(*args, **kwargs):
                 self.returncode = -1
                 self.stdout = ""
                 self.stderr = str(err)
+
         return MockResult(e)
+
 
 @pytest.mark.cli_smoke
 class TestCLISmokeIntegration:
@@ -116,8 +123,9 @@ class TestCLISmokeIntegration:
         """Verify validate command runs without crashing."""
         result = run_validate()
         # Should produce some output (even if empty)
-        assert len(result.stdout) > 0 or len(result.stderr) > 0, \
+        assert len(result.stdout) > 0 or len(result.stderr) > 0, (
             f"validate produced no output. stderr: {result.stderr}"
+        )
 
     def test_console_format_output(self):
         """Verify console format produces readable output."""
@@ -153,13 +161,11 @@ class TestCLISmokeIntegration:
             timeout=30,
             shell=True,
             cwd=str(REPO_ROOT),
-            env=env
+            env=env,
         )
         # Should fail gracefully (not crash) - returncode != 0 or has error message
         assert (
-            result.returncode != 0
-            or "error" in result.stderr.lower()
-            or "Error" in result.stdout
+            result.returncode != 0 or "error" in result.stderr.lower() or "Error" in result.stdout
         )
 
     def test_exit_code_documented_issue(self):
@@ -175,6 +181,7 @@ class TestCLISmokeIntegration:
         # This is correct behavior - we just document it here
         assert isinstance(result.returncode, int), "Return code should be an integer"
 
+
 @pytest.mark.cli_smoke
 class TestCLIFlags:
     """Test CLI flag combinations."""
@@ -184,8 +191,9 @@ class TestCLIFlags:
         for fmt in ["console", "json"]:
             result = run_validate("--format", fmt)
             # Should produce some output
-            assert len(result.stdout) > 0 or len(result.stderr) > 0, \
+            assert len(result.stdout) > 0 or len(result.stderr) > 0, (
                 f"Format {fmt} produced no output"
+            )
 
     def test_directory_override(self):
         """Test --directory flag with valid path."""
@@ -199,10 +207,11 @@ class TestCLIFlags:
             timeout=60,
             shell=True,
             cwd=str(REPO_ROOT),
-            env=env
+            env=env,
         )
         # Should produce some output
         assert len(result.stdout) > 0 or len(result.stderr) > 0
+
 
 def test_simple_subprocess():
     """Test that subprocess works at all."""
@@ -213,7 +222,7 @@ def test_simple_subprocess():
         text=True,
         timeout=10,
         encoding="utf-8",
-        shell=True  # Required for cmd.exe built-ins on Windows
+        shell=True,  # Required for cmd.exe built-ins on Windows
     )
     assert result.returncode == 0
     assert "hello" in result.stdout

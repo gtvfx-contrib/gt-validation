@@ -20,7 +20,6 @@ from unittest.mock import Mock
 
 from gt.runtime import HostType
 
-from gt.validator.config import Config  # type: ignore
 from gt.validator.registry import registry
 from gt.validator.rules.base import AbstractRule, Severity
 
@@ -44,10 +43,6 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: Config, context: HostType) -> None:
-                super().__init__(config)
-                self.context = context
-
             def validate(self, asset_path: str) -> AbstractRule: ...
 
         self.assertEqual(TestRule.context, HostType.UNREAL)
@@ -68,10 +63,6 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: Config, context: HostType) -> None:
-                super().__init__(config)
-                self.context = context
-
             def validate(self, asset_path: str) -> AbstractRule: ...
 
         @registry.register
@@ -80,10 +71,6 @@ class TestContextAwareRules(unittest.TestCase):
             category = "standalone"
             severity = Severity.ERROR
             context = HostType.STANDALONE
-
-            def __init__(self, config: Config, context: HostType) -> None:
-                super().__init__(config)
-                self.context = context
 
             def validate(self, asset_path: str) -> AbstractRule: ...
 
@@ -117,10 +104,6 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: Config, context: HostType) -> None:
-                super().__init__(config)
-                self.context = context
-
             def validate(self, asset_path: str) -> AbstractRule: ...
 
         # Should not raise an error — just verify the API works
@@ -129,7 +112,15 @@ class TestContextAwareRules(unittest.TestCase):
         self.assertIn("test_rule", rule_names)
 
     def test_rule_instantiation_with_context(self) -> None:
-        """Test that rules can be instantiated with context parameter."""
+        """Test that rules are instantiated without shadowing the class-level context.
+
+        Regression coverage for the anti-pattern documented as "BAD" in
+        ``docs/writing-rules.md``: a rule's ``__init__`` must never assign to
+        ``self.context``, since ``ValidationRunner`` always instantiates rules
+        via the ``validation_context=`` keyword (not a positional ``context``
+        argument), and ``AbstractRule.isEnabled()`` relies on the class-level
+        ``context`` attribute remaining unshadowed.
+        """
 
         @registry.register
         class TestRule(AbstractRule):
@@ -138,15 +129,12 @@ class TestContextAwareRules(unittest.TestCase):
             severity = Severity.ERROR
             context = HostType.UNREAL
 
-            def __init__(self, config: Config, context: HostType) -> None:
-                super().__init__(config)
-                self.context = context
-
             def validate(self, asset_path: str) -> AbstractRule: ...
 
         registry.discover()
-        rule = TestRule(self.config, HostType.UNREAL)
+        rule = TestRule(self.config, validation_context=None)
         self.assertEqual(rule.context, HostType.UNREAL)
+        self.assertEqual(type(rule).context, HostType.UNREAL)
 
 
 if __name__ == "__main__":

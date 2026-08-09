@@ -284,6 +284,7 @@ class JSONFormatter:
         # Host type detection (best-effort)
         try:
             from gt.runtime import RuntimeDetector as _RuntimeDetector
+
             host_type = _RuntimeDetector.getCurrentHost()
             if host_type is not None:
                 metadata["host_type"] = host_type.value
@@ -975,7 +976,8 @@ class JUnitXMLFormatter:
         for suite_name, suite_results in suites.items():
             suite_failures = sum(1 for r in suite_results if not r.passed and not r.skipped)
             suite_errors = sum(
-                1 for r in suite_results
+                1
+                for r in suite_results
                 if not r.passed and not r.skipped and r.severity == Severity.ERROR
             )
             suite_skipped = sum(1 for r in suite_results if r.skipped)

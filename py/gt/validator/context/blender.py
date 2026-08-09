@@ -19,6 +19,7 @@ def _has_blender() -> bool:
     """Return True if ``bpy`` is importable."""
     try:
         import bpy  # noqa: F401
+
         return True
     except ImportError:
         return False

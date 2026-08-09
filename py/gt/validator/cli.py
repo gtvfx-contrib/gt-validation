@@ -305,7 +305,7 @@ exit codes:
     parser.add_argument(
         "--format",
         "-f",
-            choices=["console", "json", "html", "sarif", "junit"],
+        choices=["console", "json", "html", "sarif", "junit"],
         default=None,
         help="Output format (default: console, or VALIDATOR_FORMAT env var).",
     )

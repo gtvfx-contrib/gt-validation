@@ -158,7 +158,7 @@ class CollisionLODTransitionSmoothnessRule(AbstractRule):
                         ),
                         asset_class="StaticMesh",
                         fix_hint=f"Adjust LOD scales to ensure no transition exceeds ratio of "
-                                  f"{max_scale_jump}.",
+                        f"{max_scale_jump}.",
                     )
                 return self._makeResult(
                     asset_path,
@@ -184,5 +184,5 @@ class CollisionLODTransitionSmoothnessRule(AbstractRule):
         return self._makeSkipped(
             asset_path,
             "LOD transition smoothness validation requires Unreal Engine host or "
-            "filesystem access."
+            "filesystem access.",
         )

@@ -12,7 +12,7 @@ permissions:
 jobs:
   pytest:
     name: Pytest (envoy Python 3.11)
-    runs-on: ["self-hosted", "Linux", "X64", "synology"]
+    runs-on: ["self-hosted", "Linux", "X64"]
 
     steps:
       - name: Checkout

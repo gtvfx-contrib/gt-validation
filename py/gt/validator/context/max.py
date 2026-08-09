@@ -20,6 +20,7 @@ def _has_max() -> bool:
     try:
         import pymxs  # noqa: F401
         import pymxs.runtime  # noqa: F401
+
         return True
     except ImportError:
         return False

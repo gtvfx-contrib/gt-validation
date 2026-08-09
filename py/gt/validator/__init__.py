@@ -10,10 +10,10 @@ Public API::
 
 """
 
-__version__ = "1.0.0"
-__author__ = "Technical Artist Course — ELVTR"
-__all__ = ["ValidationRunner", "Config", "ValidationReport"]
-
+from ._version import __version__
 from .config import Config
 from .reporting.models import ValidationReport
 from .runner import ValidationRunner
+
+__author__ = "Technical Artist Course — ELVTR"
+__all__ = ["ValidationRunner", "Config", "ValidationReport", "__version__"]

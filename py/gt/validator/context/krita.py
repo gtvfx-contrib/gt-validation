@@ -19,6 +19,7 @@ def _has_krita() -> bool:
     """Return True if ``krita`` is importable."""
     try:
         import krita  # noqa: F401
+
         return True
     except ImportError:
         return False

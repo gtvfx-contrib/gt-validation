@@ -20,6 +20,7 @@ def _has_maya() -> bool:
     try:
         import maya  # noqa: F401
         import maya.cmds  # noqa: F401
+
         return True
     except ImportError:
         return False

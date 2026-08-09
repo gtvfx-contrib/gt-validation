@@ -90,7 +90,7 @@ class NiagaraFixedBoundsRule(AbstractRule):
         # Fallback: if context cannot provide metadata, skip validation.
         return self._makeSkipped(
             asset_path,
-            "Niagara fixed bounds validation requires Unreal Engine host or filesystem access."
+            "Niagara fixed bounds validation requires Unreal Engine host or filesystem access.",
         )
 
 
@@ -239,18 +239,14 @@ class NiagaraSpawnRateLimitRule(AbstractRule):
             return self._makeResult(
                 asset_path,
                 passed=True,
-                message=(
-                    f"Niagara spawn rate {spawn_rate} is within limit of "
-                    f"{max_rate}."
-                ),
+                message=(f"Niagara spawn rate {spawn_rate} is within limit of {max_rate}."),
                 asset_class="NiagaraSystem",
             )
 
         return self._makeFailure(
             asset_path=asset_path,
             message=(
-                f"Niagara spawn rate {spawn_rate} exceeds the limit of "
-                f"{max_rate} particles/second."
+                f"Niagara spawn rate {spawn_rate} exceeds the limit of {max_rate} particles/second."
             ),
             fix_hint=(
                 f"Reduce the spawn rate in this Niagara system to "

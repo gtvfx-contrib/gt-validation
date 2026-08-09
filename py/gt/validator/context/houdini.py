@@ -19,6 +19,7 @@ def _has_houdini() -> bool:
     """Return True if ``hou`` is importable."""
     try:
         import hou  # noqa: F401
+
         return True
     except ImportError:
         return False
